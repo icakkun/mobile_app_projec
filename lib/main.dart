@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+//ni main library kita nanti aku ajar cane nak buat
 
-//this is the main entry point of the application
-//syahir suka tetek besar
+
+import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
