@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+
+//this is the main entry point of the application
+//syahir busuk asam mija imut ikram bulutang
+
 void main() {
   runApp(const MyApp());
 }
