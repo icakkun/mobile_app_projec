@@ -9,7 +9,7 @@ A Flutter-based mobile application that helps travelers plan, track, and control
 - **Project Title:** Travel Budget Planner  
 - **Platform:** Android (Phase 1), iOS (Optional – Phase 2)  
 - **Technology Stack:** Flutter, Firebase Authentication, Cloud Firestore, Riverpod  
-- **Prepared by:** Isyraq Haziq (2225321)  
+- **Prepared by:** Isyraq Haziq Bin Mohd Ridza 2225321  , Mohamad Wafiq bin Mohd Zainuddin 2215099 , 
 - **Date:** 28 December 2025  
 
 ---
