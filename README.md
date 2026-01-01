@@ -191,6 +191,47 @@ open App -> Login/Register -> trips Screen
 4. Dashboard updates automatically  
 
 ---
+## 🧭 Flowchart 
+
+### User Navigation
+
+    flowchart TD
+    A[Launch App] --> B[Login / Register]
+    B -->|Authentication Successful| C[Trips Screen]
+    B -->|Authentication Failed| B
+
+    C --> D[Create New Trip]
+    C --> E[Select Existing Trip]
+
+    D --> F[Trip Dashboard]
+    E --> F[Trip Dashboard]
+
+    F --> G[Add Expense]
+    F --> H[Analytics]
+    F --> I[Settings]
+
+    G --> J[Save Expense to Firestore]
+    J --> F
+
+### 🔁 Sequence Diagram – Add Expense Interaction
+
+    sequenceDiagram
+    participant User
+    participant App UI
+    participant Riverpod Controller
+    participant Firestore
+
+    User->>App UI: Tap "Add Expense"
+    App UI->>User: Display Add Expense Form
+    User->>App UI: Enter Expense Details
+    App UI->>Riverpod Controller: Submit Expense
+    Riverpod Controller->>Firestore: Save Expense Data
+    Firestore-->>Riverpod Controller: Confirm Save
+    Riverpod Controller-->>App UI: Update State
+    App UI-->>User: Dashboard Updated (Real-time)
+
+---
+
 
 ## 📋 Scope & Limitations
 
