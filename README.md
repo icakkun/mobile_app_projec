@@ -218,17 +218,7 @@ open App -> Login/Register -> trips Screen
 
 ---
 
-## 🗓️ Development Timeline
 
-| Week | Task |
-|----|----|
-| 1 | Requirements & UI mockups |
-| 2 | Firebase & Authentication |
-| 3 | Trip & Budget modules |
-| 4 | Expense & Analytics |
-| 5 | Testing & final polish |
-
----
 
 ## 📚 References
 
