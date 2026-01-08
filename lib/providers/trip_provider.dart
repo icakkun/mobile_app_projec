@@ -1,57 +1,22 @@
-// trip_provider.dart - FIRESTORE VERSION
-
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
+import 'dart:async';
 import '../models/trip.dart';
 import '../models/expense.dart';
 import '../services/firestore_service.dart';
-import 'dart:async';
 
 class TripProvider with ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
   List<Trip> _trips = [];
-  final Map<String, List<Expense>> _expensesCache = {};
-  final Map<String, StreamSubscription> _expenseSubscriptions = {};
+  Map<String, List<Expense>> _expensesCache = {};
   StreamSubscription? _tripsSubscription;
+  final Map<String, StreamSubscription> _expenseSubscriptions = {};
 
   List<Trip> get trips => List.unmodifiable(_trips);
 
-  // Initialize with user ID and start listening
-  void initialize(String userId) {
-    _firestoreService.setUserId(userId);
-    _listenToTrips();
-  }
-
-  // Listen to trips stream
-  void _listenToTrips() {
-    _tripsSubscription?.cancel();
-    _tripsSubscription = _firestoreService.getTripsStream().listen((trips) {
-      _trips = trips;
-      notifyListeners();
-    });
-  }
-
-  // Listen to expenses for a specific trip
-  void listenToExpenses(String tripId) {
-    if (_expenseSubscriptions.containsKey(tripId)) {
-      return; // Already listening
-    }
-
-    final subscription =
-        _firestoreService.getExpensesStream(tripId).listen((expenses) {
-      _expensesCache[tripId] = expenses;
-      notifyListeners();
-    });
-
-    _expenseSubscriptions[tripId] = subscription;
-  }
-
-  // Get expenses from cache
   List<Expense> getExpenses(String tripId) {
     return List.unmodifiable(_expensesCache[tripId] ?? []);
   }
 
-  // Get trip by ID
   Trip? getTripById(String id) {
     try {
       return _trips.firstWhere((trip) => trip.id == id);
@@ -60,9 +25,47 @@ class TripProvider with ChangeNotifier {
     }
   }
 
-  // Add a new trip
+  // Initialize with user ID and start listening to Firestore
+  void initialize(String userId) {
+    print('🔥 TripProvider: Initializing with userId: $userId');
+    _firestoreService.setUserId(userId);
+    _listenToTrips();
+  }
+
+  // Listen to trips stream from Firestore
+  void _listenToTrips() {
+    print('🔥 TripProvider: Starting trips listener');
+    _tripsSubscription?.cancel();
+    _tripsSubscription = _firestoreService.getTripsStream().listen(
+      (trips) {
+        print('🔥 TripProvider: Received ${trips.length} trips from Firestore');
+        _trips = trips;
+        notifyListeners();
+      },
+      onError: (error) {
+        print('❌ TripProvider: Error listening to trips: $error');
+      },
+    );
+  }
+
+  // Listen to expenses for a specific trip
+  void _listenToExpenses(String tripId) {
+    _expenseSubscriptions[tripId]?.cancel();
+    _expenseSubscriptions[tripId] =
+        _firestoreService.getExpensesStream(tripId).listen(
+      (expenses) {
+        _expensesCache[tripId] = expenses;
+        notifyListeners();
+      },
+      onError: (error) {
+        print(
+            '❌ TripProvider: Error listening to expenses for trip $tripId: $error');
+      },
+    );
+  }
+
+  // Add a new trip (saves to Firestore)
   Future<void> addTrip({
-    required String userId,
     required String title,
     required String destination,
     required DateTime startDate,
@@ -71,8 +74,8 @@ class TripProvider with ChangeNotifier {
     required double totalBudget,
     List<CategoryBudget>? categoryBudgets,
   }) async {
+    print('🔥 TripProvider: Adding trip to Firestore');
     await _firestoreService.addTrip(
-      userId: userId,
       title: title,
       destination: destination,
       startDate: startDate,
@@ -81,10 +84,30 @@ class TripProvider with ChangeNotifier {
       totalBudget: totalBudget,
       categoryBudgets: categoryBudgets,
     );
-    // No need to notifyListeners() - stream will update automatically!
+    // No need to call notifyListeners() - the stream will update automatically
   }
 
-  // Add expense
+  // Update an existing trip (updates in Firestore)
+  Future<void> updateTrip(String tripId, Trip updatedTrip) async {
+    print('🔥 TripProvider: Updating trip $tripId in Firestore');
+    await _firestoreService.updateTrip(tripId, updatedTrip);
+    // No need to call notifyListeners() - the stream will update automatically
+  }
+
+  // Delete a trip (deletes from Firestore)
+  Future<void> deleteTrip(String tripId) async {
+    print('🔥 TripProvider: Deleting trip $tripId from Firestore');
+
+    // Cancel expense subscription for this trip
+    _expenseSubscriptions[tripId]?.cancel();
+    _expenseSubscriptions.remove(tripId);
+    _expensesCache.remove(tripId);
+
+    await _firestoreService.deleteTrip(tripId);
+    // No need to call notifyListeners() - the stream will update automatically
+  }
+
+  // Add expense (saves to Firestore)
   Future<void> addExpense({
     required String tripId,
     required double amount,
@@ -94,6 +117,11 @@ class TripProvider with ChangeNotifier {
     required DateTime expenseDate,
     String note = '',
   }) async {
+    // Start listening to expenses for this trip if not already
+    if (!_expenseSubscriptions.containsKey(tripId)) {
+      _listenToExpenses(tripId);
+    }
+
     await _firestoreService.addExpense(
       tripId: tripId,
       amount: amount,
@@ -103,48 +131,20 @@ class TripProvider with ChangeNotifier {
       expenseDate: expenseDate,
       note: note,
     );
-    // Stream will update automatically!
+    // No need to call notifyListeners() - the stream will update automatically
   }
 
-  // Update trip
-  Future<void> updateTrip(String id, Trip updatedTrip) async {
-    // Convert to map for Firestore
-    final updates = {
-      'title': updatedTrip.title,
-      'destination': updatedTrip.destination,
-      'startDate': updatedTrip.startDate,
-      'endDate': updatedTrip.endDate,
-      'homeCurrency': updatedTrip.homeCurrency,
-      'totalBudget': updatedTrip.totalBudget,
-    };
-    await _firestoreService.updateTrip(id, updates);
-  }
-
-  // Delete trip
-  Future<void> deleteTrip(String id) async {
-    await _firestoreService.deleteTrip(id);
-    _expenseSubscriptions[id]?.cancel();
-    _expenseSubscriptions.remove(id);
-    _expensesCache.remove(id);
-  }
-
-  // Update expense
+  // Update expense (updates in Firestore)
   Future<void> updateExpense(
       String tripId, String expenseId, Expense updatedExpense) async {
-    final updates = {
-      'amount': updatedExpense.amount,
-      'currency': updatedExpense.currency,
-      'categoryName': updatedExpense.categoryName,
-      'paidBy': updatedExpense.paidBy,
-      'expenseDate': updatedExpense.expenseDate,
-      'note': updatedExpense.note,
-    };
-    await _firestoreService.updateExpense(tripId, expenseId, updates);
+    await _firestoreService.updateExpense(tripId, expenseId, updatedExpense);
+    // No need to call notifyListeners() - the stream will update automatically
   }
 
-  // Delete expense
+  // Delete expense (deletes from Firestore)
   Future<void> deleteExpense(String tripId, String expenseId) async {
     await _firestoreService.deleteExpense(tripId, expenseId);
+    // No need to call notifyListeners() - the stream will update automatically
   }
 
   // Calculate total spent for a trip
@@ -163,9 +163,10 @@ class TripProvider with ChangeNotifier {
           (categorySpent[expense.categoryName] ?? 0) + expense.amount;
     }
 
-    // Sort by amount descending
+    // Sort by amount (highest first)
     final sortedEntries = categorySpent.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
+
     return Map.fromEntries(sortedEntries);
   }
 

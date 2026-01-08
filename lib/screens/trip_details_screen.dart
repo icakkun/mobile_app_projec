@@ -1,5 +1,3 @@
-// trip_details_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -8,32 +6,97 @@ import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'add_expense_screen.dart';
 import 'analytics_screen.dart';
+import 'edit_trip_screen.dart';
 
-class TripDetailsScreen extends StatefulWidget {
+class TripDetailsScreen extends StatelessWidget {
   final String tripId;
 
   const TripDetailsScreen({super.key, required this.tripId});
 
-  @override
-  State<TripDetailsScreen> createState() => _TripDetailsScreenState();
-}
+  void _confirmDeleteTrip(
+      BuildContext context, String tripId, String destination) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBackground,
+        title: const Text('Delete Trip?'),
+        content: Text(
+          'Are you sure you want to delete "$destination"?\n\nThis will also delete all expenses for this trip.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
 
-class _TripDetailsScreenState extends State<TripDetailsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Initialize expense listener for this trip
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TripProvider>(context, listen: false)
-          .listenToExpenses(widget.tripId);
-    });
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(color: AppTheme.accentMint),
+                ),
+              );
+
+              try {
+                final tripProvider =
+                    Provider.of<TripProvider>(context, listen: false);
+                await tripProvider.deleteTrip(tripId);
+
+                // Close loading
+                if (context.mounted) {
+                  Navigator.pop(context);
+
+                  // Go back to trips list
+                  Navigator.pop(context);
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Trip deleted successfully!'),
+                      backgroundColor: AppTheme.accentMint,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                // Close loading
+                if (context.mounted) {
+                  Navigator.pop(context);
+
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting trip: $e'),
+                      backgroundColor: AppTheme.errorColor,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<TripProvider>(
       builder: (context, tripProvider, child) {
-        final trip = tripProvider.getTripById(widget.tripId);
+        final trip = tripProvider.getTripById(tripId);
         if (trip == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Trip Not Found')),
@@ -41,11 +104,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           );
         }
 
-        final expenses = tripProvider.getExpenses(widget.tripId);
-        final totalSpent = tripProvider.getTotalSpent(widget.tripId);
-        final remaining = tripProvider.getRemainingBudget(widget.tripId);
-        final percentage = tripProvider.getBudgetPercentage(widget.tripId);
-        final categorySpent = tripProvider.getSpentByCategory(widget.tripId);
+        final expenses = tripProvider.getExpenses(tripId);
+        final totalSpent = tripProvider.getTotalSpent(tripId);
+        final remaining = tripProvider.getRemainingBudget(tripId);
+        final percentage = tripProvider.getBudgetPercentage(tripId);
+        final categorySpent = tripProvider.getSpentByCategory(tripId);
 
         return Scaffold(
           appBar: AppBar(
@@ -57,11 +120,49 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          AnalyticsScreen(tripId: widget.tripId),
+                      builder: (context) => AnalyticsScreen(tripId: tripId),
                     ),
                   );
                 },
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                color: AppTheme.cardBackground,
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditTripScreen(trip: trip),
+                      ),
+                    );
+                  } else if (value == 'delete') {
+                    _confirmDeleteTrip(context, trip.id, trip.destination);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: AppTheme.accentMint, size: 20),
+                        SizedBox(width: 12),
+                        Text('Edit Trip'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete,
+                            color: AppTheme.errorColor, size: 20),
+                        SizedBox(width: 12),
+                        Text('Delete Trip'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -176,10 +277,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 const SizedBox(height: 12),
                 ...trip.categoryBudgets.map((categoryBudget) {
                   final spent = categorySpent[categoryBudget.categoryName] ?? 0;
-                  final catRemaining = tripProvider.getCategoryRemaining(
-                      widget.tripId, categoryBudget);
+                  final catRemaining =
+                      tripProvider.getCategoryRemaining(tripId, categoryBudget);
                   final catPercentage = tripProvider.getCategoryPercentage(
-                      widget.tripId, categoryBudget);
+                      tripId, categoryBudget);
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -330,7 +431,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => AddExpenseScreen(tripId: widget.tripId),
+                builder: (context) => AddExpenseScreen(tripId: tripId),
               );
             },
             child: const Icon(Icons.add),

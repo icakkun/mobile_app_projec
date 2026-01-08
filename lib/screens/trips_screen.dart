@@ -8,15 +8,92 @@ import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'trip_details_screen.dart';
 import 'create_trip_screen.dart';
+import 'edit_trip_screen.dart';
 
 class TripsScreen extends StatelessWidget {
   const TripsScreen({super.key});
+
+  void _confirmDeleteTrip(
+      BuildContext context, String tripId, String destination) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBackground,
+        title: const Text('Delete Trip?'),
+        content: Text(
+          'Are you sure you want to delete "$destination"?\n\nThis will also delete all expenses for this trip.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(color: AppTheme.accentMint),
+                ),
+              );
+
+              try {
+                final tripProvider =
+                    Provider.of<TripProvider>(context, listen: false);
+                await tripProvider.deleteTrip(tripId);
+
+                // Close loading
+                if (context.mounted) {
+                  Navigator.pop(context);
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Trip deleted successfully!'),
+                      backgroundColor: AppTheme.accentMint,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                // Close loading
+                if (context.mounted) {
+                  Navigator.pop(context);
+
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting trip: $e'),
+                      backgroundColor: AppTheme.errorColor,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Trips'),
+        title: const Text('Trip Mint'),
         centerTitle: false,
       ),
       body: Consumer<TripProvider>(
@@ -110,6 +187,52 @@ class TripsScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
+                            ),
+                            // Edit/Delete Menu
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert,
+                                color: AppTheme.textSecondary,
+                              ),
+                              color: AppTheme.cardBackground,
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          EditTripScreen(trip: trip),
+                                    ),
+                                  );
+                                } else if (value == 'delete') {
+                                  _confirmDeleteTrip(
+                                      context, trip.id, trip.destination);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit,
+                                          color: AppTheme.accentMint, size: 20),
+                                      SizedBox(width: 12),
+                                      Text('Edit Trip'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete,
+                                          color: AppTheme.errorColor, size: 20),
+                                      SizedBox(width: 12),
+                                      Text('Delete Trip'),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

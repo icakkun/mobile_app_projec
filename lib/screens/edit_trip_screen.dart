@@ -1,3 +1,5 @@
+// edit_trip_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,25 +10,56 @@ import '../models/trip.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 
-class CreateTripScreen extends StatefulWidget {
-  const CreateTripScreen({super.key});
+class EditTripScreen extends StatefulWidget {
+  final Trip trip;
+
+  const EditTripScreen({super.key, required this.trip});
 
   @override
-  State<CreateTripScreen> createState() => _CreateTripScreenState();
+  State<EditTripScreen> createState() => _EditTripScreenState();
 }
 
-class _CreateTripScreenState extends State<CreateTripScreen> {
+class _EditTripScreenState extends State<EditTripScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _destinationController = TextEditingController();
-  final _budgetController = TextEditingController();
+  late TextEditingController _titleController;
+  late TextEditingController _destinationController;
+  late TextEditingController _budgetController;
 
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now().add(const Duration(days: 7));
-  String _selectedCurrency = 'MYR';
+  late DateTime _startDate;
+  late DateTime _endDate;
+  late String _selectedCurrency;
   bool _addCategoryBudgets = false;
 
   final Map<String, TextEditingController> _categoryControllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill with existing trip data
+    _titleController = TextEditingController(text: widget.trip.title);
+    _destinationController =
+        TextEditingController(text: widget.trip.destination);
+    _budgetController =
+        TextEditingController(text: widget.trip.totalBudget.toString());
+    _startDate = widget.trip.startDate;
+    _endDate = widget.trip.endDate;
+    _selectedCurrency = widget.trip.homeCurrency;
+
+    // Pre-fill category budgets if they exist
+    if (widget.trip.categoryBudgets.isNotEmpty) {
+      _addCategoryBudgets = true;
+      for (var categoryBudget in widget.trip.categoryBudgets) {
+        _categoryControllers[categoryBudget.categoryName] =
+            TextEditingController(text: categoryBudget.limitAmount.toString());
+      }
+      // Initialize remaining categories with empty controllers
+      for (var category in AppConstants.categories) {
+        if (!_categoryControllers.containsKey(category)) {
+          _categoryControllers[category] = TextEditingController();
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -43,7 +76,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: isStartDate ? _startDate : _endDate,
-      firstDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
@@ -73,7 +106,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     }
   }
 
-  void _createTrip() async {
+  void _updateTrip() async {
     if (_formKey.currentState!.validate()) {
       List<CategoryBudget>? categoryBudgets;
 
@@ -83,9 +116,14 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         for (var entry in _categoryControllers.entries) {
           final amount = double.tryParse(entry.value.text);
           if (amount != null && amount > 0) {
+            // Keep existing ID if it exists
+            final existingBudget = widget.trip.categoryBudgets
+                .where((b) => b.categoryName == entry.key)
+                .firstOrNull;
+
             categoryBudgets.add(
               CategoryBudget(
-                id: uuid.v4(),
+                id: existingBudget?.id ?? uuid.v4(),
                 categoryName: entry.key,
                 limitAmount: amount,
               ),
@@ -99,54 +137,39 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(
-          child: CircularProgressIndicator(color: AppTheme.accentMint),
+          child: CircularProgressIndicator(),
         ),
       );
 
-      try {
-        final tripProvider = Provider.of<TripProvider>(context, listen: false);
+      // Update trip
+      final tripProvider = Provider.of<TripProvider>(context, listen: false);
+      final updatedTrip = widget.trip.copyWith(
+        title: _titleController.text,
+        destination: _destinationController.text,
+        startDate: _startDate,
+        endDate: _endDate,
+        homeCurrency: _selectedCurrency,
+        totalBudget: double.parse(_budgetController.text),
+        categoryBudgets: categoryBudgets,
+      );
 
-        // ✅ FIXED: No userId parameter needed!
-        await tripProvider.addTrip(
-          title: _titleController.text,
-          destination: _destinationController.text,
-          startDate: _startDate,
-          endDate: _endDate,
-          homeCurrency: _selectedCurrency,
-          totalBudget: double.parse(_budgetController.text),
-          categoryBudgets: categoryBudgets,
+      await tripProvider.updateTrip(widget.trip.id, updatedTrip);
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+
+        // Go back to trip details
+        Navigator.pop(context);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Trip updated successfully!'),
+            backgroundColor: AppTheme.accentMint,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
-
-        // Close loading dialog
-        if (mounted) {
-          Navigator.pop(context);
-
-          // Go back to trips screen
-          Navigator.pop(context);
-
-          // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Trip created successfully!'),
-              backgroundColor: AppTheme.accentMint,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        // Close loading dialog
-        if (mounted) {
-          Navigator.pop(context);
-
-          // Show error message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error creating trip: $e'),
-              backgroundColor: AppTheme.errorColor,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
       }
     }
   }
@@ -155,17 +178,13 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Trip'),
+        title: const Text('Edit Trip'),
         actions: [
           TextButton(
-            onPressed: _createTrip,
+            onPressed: _updateTrip,
             child: const Text(
-              'Create',
-              style: TextStyle(
-                color: AppTheme.accentMint,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              'Save',
+              style: TextStyle(color: AppTheme.accentMint, fontSize: 16),
             ),
           ),
         ],
@@ -293,9 +312,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
             ),
             const SizedBox(height: 24),
             SwitchListTile(
-              title: const Text('Add Category Budgets'),
-              subtitle:
-                  const Text('Optional: Set budgets for specific categories'),
+              title: const Text('Category Budgets'),
+              subtitle: const Text('Set budgets for specific categories'),
               value: _addCategoryBudgets,
               activeColor: AppTheme.accentMint,
               contentPadding: EdgeInsets.zero,
@@ -304,7 +322,10 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                   _addCategoryBudgets = value;
                   if (value) {
                     for (var category in AppConstants.categories) {
-                      _categoryControllers[category] = TextEditingController();
+                      if (!_categoryControllers.containsKey(category)) {
+                        _categoryControllers[category] =
+                            TextEditingController();
+                      }
                     }
                   } else {
                     for (var controller in _categoryControllers.values) {
