@@ -1,22 +1,39 @@
+// trip_details_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../providers/trip_provider.dart';
-import '../utils/app_theme.dart';
-import '../utils/constants.dart';
+import '../../providers/trip_provider.dart';
+import '../../utils/app_theme.dart';
+import '../../utils/constants.dart';
 import 'add_expense_screen.dart';
-import 'analytics_screen.dart';
+import '../Analytics/analytics_screen.dart';
 
-class TripDetailsScreen extends StatelessWidget {
+class TripDetailsScreen extends StatefulWidget {
   final String tripId;
 
   const TripDetailsScreen({super.key, required this.tripId});
 
   @override
+  State<TripDetailsScreen> createState() => _TripDetailsScreenState();
+}
+
+class _TripDetailsScreenState extends State<TripDetailsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize expense listener for this trip
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<TripProvider>(context, listen: false)
+          .listenToExpenses(widget.tripId);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<TripProvider>(
       builder: (context, tripProvider, child) {
-        final trip = tripProvider.getTripById(tripId);
+        final trip = tripProvider.getTripById(widget.tripId);
         if (trip == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Trip Not Found')),
@@ -24,11 +41,11 @@ class TripDetailsScreen extends StatelessWidget {
           );
         }
 
-        final expenses = tripProvider.getExpenses(tripId);
-        final totalSpent = tripProvider.getTotalSpent(tripId);
-        final remaining = tripProvider.getRemainingBudget(tripId);
-        final percentage = tripProvider.getBudgetPercentage(tripId);
-        final categorySpent = tripProvider.getSpentByCategory(tripId);
+        final expenses = tripProvider.getExpenses(widget.tripId);
+        final totalSpent = tripProvider.getTotalSpent(widget.tripId);
+        final remaining = tripProvider.getRemainingBudget(widget.tripId);
+        final percentage = tripProvider.getBudgetPercentage(widget.tripId);
+        final categorySpent = tripProvider.getSpentByCategory(widget.tripId);
 
         return Scaffold(
           appBar: AppBar(
@@ -40,7 +57,8 @@ class TripDetailsScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AnalyticsScreen(tripId: tripId),
+                      builder: (context) =>
+                          AnalyticsScreen(tripId: widget.tripId),
                     ),
                   );
                 },
@@ -90,9 +108,8 @@ class TripDetailsScreen extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${remaining.toStringAsFixed(2)}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium,
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium,
                               ),
                             ],
                           ),
@@ -159,8 +176,10 @@ class TripDetailsScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 ...trip.categoryBudgets.map((categoryBudget) {
                   final spent = categorySpent[categoryBudget.categoryName] ?? 0;
-                  final catRemaining = tripProvider.getCategoryRemaining(tripId, categoryBudget);
-                  final catPercentage = tripProvider.getCategoryPercentage(tripId, categoryBudget);
+                  final catRemaining = tripProvider.getCategoryRemaining(
+                      widget.tripId, categoryBudget);
+                  final catPercentage = tripProvider.getCategoryPercentage(
+                      widget.tripId, categoryBudget);
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -274,10 +293,10 @@ class TripDetailsScreen extends StatelessWidget {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (expense.note.isNotEmpty)
-                            Text(expense.note),
+                          if (expense.note.isNotEmpty) Text(expense.note),
                           Text(
-                            DateFormat('MMM dd, yyyy').format(expense.expenseDate),
+                            DateFormat('MMM dd, yyyy')
+                                .format(expense.expenseDate),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -288,13 +307,11 @@ class TripDetailsScreen extends StatelessWidget {
                         children: [
                           Text(
                             '${AppConstants.getCurrencySymbol(expense.currency)}${expense.amount.toStringAsFixed(2)}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.accentMint,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.accentMint,
+                                    ),
                           ),
                           Text(
                             expense.paidBy,
@@ -313,7 +330,7 @@ class TripDetailsScreen extends StatelessWidget {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => AddExpenseScreen(tripId: tripId),
+                builder: (context) => AddExpenseScreen(tripId: widget.tripId),
               );
             },
             child: const Icon(Icons.add),

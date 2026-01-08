@@ -1,19 +1,47 @@
+// trip_provider.dart
+
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import '../models/trip.dart';
 import '../models/expense.dart';
+import '../services/firestore_service.dart';
 
 class TripProvider with ChangeNotifier {
-  final List<Trip> _trips = [];
-  final Map<String, List<Expense>> _expenses = {};
-  final _uuid = const Uuid();
+  final FirestoreService _firestoreService = FirestoreService();
 
+  List<Trip> _trips = [];
+  Map<String, List<Expense>> _expensesCache = {};
+  bool _isLoading = false;
+
+  // Getters
   List<Trip> get trips => List.unmodifiable(_trips);
+  bool get isLoading => _isLoading;
 
-  List<Expense> getExpenses(String tripId) {
-    return List.unmodifiable(_expenses[tripId] ?? []);
+  TripProvider() {
+    _initializeTripsListener();
   }
 
+  // Initialize real-time listener for trips
+  void _initializeTripsListener() {
+    _firestoreService.getTripsStream().listen((trips) {
+      _trips = trips;
+      notifyListeners();
+    });
+  }
+
+  // Get expenses for a trip (uses cache or fetches from Firestore)
+  List<Expense> getExpenses(String tripId) {
+    return List.unmodifiable(_expensesCache[tripId] ?? []);
+  }
+
+  // Initialize expense listener for a specific trip
+  void listenToExpenses(String tripId) {
+    _firestoreService.getExpensesStream(tripId).listen((expenses) {
+      _expensesCache[tripId] = expenses;
+      notifyListeners();
+    });
+  }
+
+  // Get trip by ID
   Trip? getTripById(String id) {
     try {
       return _trips.firstWhere((trip) => trip.id == id);
@@ -22,8 +50,10 @@ class TripProvider with ChangeNotifier {
     }
   }
 
+  // ==================== TRIP OPERATIONS ====================
+
   // Add a new trip
-  void addTrip({
+  Future<bool> addTrip({
     required String title,
     required String destination,
     required DateTime startDate,
@@ -31,9 +61,11 @@ class TripProvider with ChangeNotifier {
     required String homeCurrency,
     required double totalBudget,
     List<CategoryBudget>? categoryBudgets,
-  }) {
-    final trip = Trip(
-      id: _uuid.v4(),
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final tripId = await _firestoreService.addTrip(
       title: title,
       destination: destination,
       startDate: startDate,
@@ -42,29 +74,54 @@ class TripProvider with ChangeNotifier {
       totalBudget: totalBudget,
       categoryBudgets: categoryBudgets,
     );
-    _trips.insert(0, trip);
-    _expenses[trip.id] = [];
+
+    _isLoading = false;
     notifyListeners();
+
+    return tripId != null;
   }
 
   // Update trip
-  void updateTrip(String id, Trip updatedTrip) {
-    final index = _trips.indexWhere((trip) => trip.id == id);
-    if (index != -1) {
-      _trips[index] = updatedTrip;
-      notifyListeners();
-    }
+  Future<bool> updateTrip(String id, Trip updatedTrip) async {
+    final updates = {
+      'title': updatedTrip.title,
+      'destination': updatedTrip.destination,
+      'startDate': updatedTrip.startDate,
+      'endDate': updatedTrip.endDate,
+      'homeCurrency': updatedTrip.homeCurrency,
+      'totalBudget': updatedTrip.totalBudget,
+      'categoryBudgets': updatedTrip.categoryBudgets
+          .map((cb) => {
+                'id': cb.id,
+                'categoryName': cb.categoryName,
+                'limitAmount': cb.limitAmount,
+              })
+          .toList(),
+    };
+
+    return await _firestoreService.updateTrip(id, updates);
   }
 
   // Delete trip
-  void deleteTrip(String id) {
-    _trips.removeWhere((trip) => trip.id == id);
-    _expenses.remove(id);
+  Future<bool> deleteTrip(String id) async {
+    _isLoading = true;
     notifyListeners();
+
+    final success = await _firestoreService.deleteTrip(id);
+
+    // Remove from cache
+    _expensesCache.remove(id);
+
+    _isLoading = false;
+    notifyListeners();
+
+    return success;
   }
 
+  // ==================== EXPENSE OPERATIONS ====================
+
   // Add expense
-  void addExpense({
+  Future<bool> addExpense({
     required String tripId,
     required double amount,
     required String currency,
@@ -72,9 +129,8 @@ class TripProvider with ChangeNotifier {
     required String paidBy,
     required DateTime expenseDate,
     String note = '',
-  }) {
-    final expense = Expense(
-      id: _uuid.v4(),
+  }) async {
+    final expenseId = await _firestoreService.addExpense(
       tripId: tripId,
       amount: amount,
       currency: currency,
@@ -84,40 +140,40 @@ class TripProvider with ChangeNotifier {
       note: note,
     );
 
-    if (!_expenses.containsKey(tripId)) {
-      _expenses[tripId] = [];
-    }
-    _expenses[tripId]!.insert(0, expense);
-    notifyListeners();
+    return expenseId != null;
   }
 
   // Update expense
-  void updateExpense(String tripId, String expenseId, Expense updatedExpense) {
-    final expenses = _expenses[tripId];
-    if (expenses != null) {
-      final index = expenses.indexWhere((e) => e.id == expenseId);
-      if (index != -1) {
-        expenses[index] = updatedExpense;
-        notifyListeners();
-      }
-    }
+  Future<bool> updateExpense(
+      String tripId, String expenseId, Expense updatedExpense) async {
+    final updates = {
+      'amount': updatedExpense.amount,
+      'currency': updatedExpense.currency,
+      'categoryName': updatedExpense.categoryName,
+      'paidBy': updatedExpense.paidBy,
+      'expenseDate': updatedExpense.expenseDate,
+      'note': updatedExpense.note,
+    };
+
+    return await _firestoreService.updateExpense(tripId, expenseId, updates);
   }
 
   // Delete expense
-  void deleteExpense(String tripId, String expenseId) {
-    _expenses[tripId]?.removeWhere((e) => e.id == expenseId);
-    notifyListeners();
+  Future<bool> deleteExpense(String tripId, String expenseId) async {
+    return await _firestoreService.deleteExpense(tripId, expenseId);
   }
+
+  // ==================== CALCULATIONS ====================
 
   // Calculate total spent for a trip
   double getTotalSpent(String tripId) {
-    final expenses = _expenses[tripId] ?? [];
+    final expenses = _expensesCache[tripId] ?? [];
     return expenses.fold(0.0, (sum, expense) => sum + expense.amount);
   }
 
   // Calculate spent by category
   Map<String, double> getSpentByCategory(String tripId) {
-    final expenses = _expenses[tripId] ?? [];
+    final expenses = _expensesCache[tripId] ?? [];
     final Map<String, double> categorySpent = {};
 
     for (final expense in expenses) {
@@ -125,7 +181,11 @@ class TripProvider with ChangeNotifier {
           (categorySpent[expense.categoryName] ?? 0) + expense.amount;
     }
 
-    return categorySpent;
+    // Sort by value (descending)
+    final sortedEntries = categorySpent.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Map.fromEntries(sortedEntries);
   }
 
   // Get remaining budget
@@ -139,7 +199,8 @@ class TripProvider with ChangeNotifier {
   double getBudgetPercentage(String tripId) {
     final trip = getTripById(tripId);
     if (trip == null || trip.totalBudget == 0) return 0;
-    return (getTotalSpent(tripId) / trip.totalBudget * 100).clamp(0, 100);
+    final percentage = (getTotalSpent(tripId) / trip.totalBudget * 100);
+    return percentage.clamp(0, 999); // Cap at 999% for display
   }
 
   // Get remaining for category budget
@@ -152,6 +213,14 @@ class TripProvider with ChangeNotifier {
   double getCategoryPercentage(String tripId, CategoryBudget categoryBudget) {
     if (categoryBudget.limitAmount == 0) return 0;
     final spent = getSpentByCategory(tripId)[categoryBudget.categoryName] ?? 0;
-    return (spent / categoryBudget.limitAmount * 100).clamp(0, 100);
+    final percentage = (spent / categoryBudget.limitAmount * 100);
+    return percentage.clamp(0, 999); // Cap at 999% for display
+  }
+
+  // Clean up
+  @override
+  void dispose() {
+    _expensesCache.clear();
+    super.dispose();
   }
 }

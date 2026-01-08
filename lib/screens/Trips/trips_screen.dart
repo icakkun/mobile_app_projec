@@ -1,9 +1,11 @@
+// trips_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../providers/trip_provider.dart';
-import '../utils/app_theme.dart';
-import '../utils/constants.dart';
+import '../../providers/trip_provider.dart';
+import '../../utils/app_theme.dart';
+import '../../utils/constants.dart';
 import 'trip_details_screen.dart';
 import 'create_trip_screen.dart';
 
@@ -14,7 +16,7 @@ class TripsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trip Mint'),
+        title: const Text('My Trips'),
         centerTitle: false,
       ),
       body: Consumer<TripProvider>(
@@ -64,7 +66,8 @@ class TripsScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TripDetailsScreen(tripId: trip.id),
+                        builder: (context) =>
+                            TripDetailsScreen(tripId: trip.id),
                       ),
                     );
                   },
@@ -102,9 +105,8 @@ class TripsScreen extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall,
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
                                   ),
                                 ],
                               ),
@@ -120,9 +122,7 @@ class TripsScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   'Spent',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -144,9 +144,7 @@ class TripsScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   'Remaining',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -167,7 +165,8 @@ class TripsScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
                             value: percentage / 100,
-                            backgroundColor: AppTheme.textSecondary.withOpacity(0.2),
+                            backgroundColor:
+                                AppTheme.textSecondary.withOpacity(0.2),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               percentage > 100
                                   ? AppTheme.errorColor

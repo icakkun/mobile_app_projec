@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../providers/trip_provider.dart';
-import '../utils/app_theme.dart';
-import '../utils/constants.dart';
+import '../../providers/trip_provider.dart';
+import '../../utils/app_theme.dart';
+import '../../utils/constants.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   final String tripId;

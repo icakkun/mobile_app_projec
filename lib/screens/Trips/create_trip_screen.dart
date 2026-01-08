@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import '../providers/trip_provider.dart';
-import '../models/trip.dart';
-import '../utils/app_theme.dart';
-import '../utils/constants.dart';
+import '../../providers/trip_provider.dart';
+import '../../models/trip.dart';
+import '../../utils/app_theme.dart';
+import '../../utils/constants.dart';
 
 class CreateTripScreen extends StatefulWidget {
   const CreateTripScreen({super.key});
@@ -174,7 +174,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     child: InputDecorator(
                       decoration: const InputDecoration(
                         labelText: 'Start Date',
-                        prefixIcon: Icon(Icons.calendar_today, color: AppTheme.accentMint),
+                        prefixIcon: Icon(Icons.calendar_today,
+                            color: AppTheme.accentMint),
                       ),
                       child: Text(
                         DateFormat('MMM dd, yyyy').format(_startDate),
@@ -190,7 +191,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     child: InputDecorator(
                       decoration: const InputDecoration(
                         labelText: 'End Date',
-                        prefixIcon: Icon(Icons.event, color: AppTheme.accentMint),
+                        prefixIcon:
+                            Icon(Icons.event, color: AppTheme.accentMint),
                       ),
                       child: Text(
                         DateFormat('MMM dd, yyyy').format(_endDate),
@@ -206,13 +208,15 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               value: _selectedCurrency,
               decoration: const InputDecoration(
                 labelText: 'Currency',
-                prefixIcon: Icon(Icons.attach_money, color: AppTheme.accentMint),
+                prefixIcon:
+                    Icon(Icons.attach_money, color: AppTheme.accentMint),
               ),
               dropdownColor: AppTheme.cardBackground,
               items: AppConstants.currencies.map((currency) {
                 return DropdownMenuItem(
                   value: currency,
-                  child: Text('$currency (${AppConstants.getCurrencySymbol(currency)})'),
+                  child: Text(
+                      '$currency (${AppConstants.getCurrencySymbol(currency)})'),
                 );
               }).toList(),
               onChanged: (value) {
@@ -227,10 +231,13 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               decoration: InputDecoration(
                 labelText: 'Total Budget',
                 hintText: '0.00',
-                prefixIcon: const Icon(Icons.account_balance_wallet, color: AppTheme.accentMint),
-                prefixText: '${AppConstants.getCurrencySymbol(_selectedCurrency)} ',
+                prefixIcon: const Icon(Icons.account_balance_wallet,
+                    color: AppTheme.accentMint),
+                prefixText:
+                    '${AppConstants.getCurrencySymbol(_selectedCurrency)} ',
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
@@ -248,7 +255,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
             const SizedBox(height: 24),
             SwitchListTile(
               title: const Text('Add Category Budgets'),
-              subtitle: const Text('Optional: Set budgets for specific categories'),
+              subtitle:
+                  const Text('Optional: Set budgets for specific categories'),
               value: _addCategoryBudgets,
               activeColor: AppTheme.accentMint,
               contentPadding: EdgeInsets.zero,
@@ -283,11 +291,14 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     decoration: InputDecoration(
                       labelText: category,
                       hintText: 'Optional',
-                      prefixText: '${AppConstants.getCurrencySymbol(_selectedCurrency)} ',
+                      prefixText:
+                          '${AppConstants.getCurrencySymbol(_selectedCurrency)} ',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}')),
                     ],
                   ),
                 );
