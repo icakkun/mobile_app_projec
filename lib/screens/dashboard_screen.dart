@@ -3,11 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:trip_mint/screens/trip_details_screen.dart';
 import '../providers/trip_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
-import 'trip_details_screen.dart';
 import 'create_trip_screen.dart';
 
 class DashboardScreen extends StatelessWidget {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
+import 'firestore_check_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -167,11 +168,23 @@ class SettingsScreen extends StatelessWidget {
                     );
                   },
                 ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FirestoreCheckScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text('Run Firestore Check'),
+                )
               ],
             ),
           ),
           const SizedBox(height: 32),
 
+          const SizedBox(height: 32),
           // Logout Button
           ElevatedButton.icon(
             onPressed: () async {
