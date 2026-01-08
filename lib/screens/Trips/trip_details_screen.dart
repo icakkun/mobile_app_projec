@@ -1,359 +1,302 @@
-// trip_details_screen.dart
+// trips_screen.dart - DEBUG VERSION
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/trip_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/constants.dart';
-import 'add_expense_screen.dart';
-import '../Analytics/analytics_screen.dart';
+import 'trip_details_screen.dart';
+import 'create_trip_screen.dart';
 
-class TripDetailsScreen extends StatefulWidget {
-  final String tripId;
-
-  const TripDetailsScreen({super.key, required this.tripId});
+class TripsScreen extends StatefulWidget {
+  const TripsScreen({super.key});
 
   @override
-  State<TripDetailsScreen> createState() => _TripDetailsScreenState();
+  State<TripsScreen> createState() => _TripsScreenState();
 }
 
-class _TripDetailsScreenState extends State<TripDetailsScreen> {
+class _TripsScreenState extends State<TripsScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize expense listener for this trip
+    // Debug: Print when screen initializes
+    print('🔍 DEBUG: TripsScreen initialized');
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TripProvider>(context, listen: false)
-          .listenToExpenses(widget.tripId);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final tripProvider = Provider.of<TripProvider>(context, listen: false);
+
+      print('🔍 DEBUG: Current user ID: ${authProvider.user?.uid}');
+      print('🔍 DEBUG: TripProvider trips count: ${tripProvider.trips.length}');
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TripProvider>(
-      builder: (context, tripProvider, child) {
-        final trip = tripProvider.getTripById(widget.tripId);
-        if (trip == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Trip Not Found')),
-            body: const Center(child: Text('Trip not found')),
-          );
-        }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Trips'),
+        centerTitle: false,
+        actions: [
+          // Debug button
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () {
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
+              final tripProvider =
+                  Provider.of<TripProvider>(context, listen: false);
 
-        final expenses = tripProvider.getExpenses(widget.tripId);
-        final totalSpent = tripProvider.getTotalSpent(widget.tripId);
-        final remaining = tripProvider.getRemainingBudget(widget.tripId);
-        final percentage = tripProvider.getBudgetPercentage(widget.tripId);
-        final categorySpent = tripProvider.getSpentByCategory(widget.tripId);
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(trip.destination),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.bar_chart),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AnalyticsScreen(tripId: widget.tripId),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Budget Summary Card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Debug Info'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Spent',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${totalSpent.toStringAsFixed(2)}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      color: percentage > 80
-                                          ? AppTheme.errorColor
-                                          : AppTheme.accentMint,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Remaining',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${remaining.toStringAsFixed(2)}',
-                                style:
-                                    Theme.of(context).textTheme.headlineMedium,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: percentage / 100,
-                          backgroundColor:
-                              AppTheme.textSecondary.withOpacity(0.2),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            percentage > 100
-                                ? AppTheme.errorColor
-                                : percentage > 80
-                                    ? AppTheme.warningColor
-                                    : AppTheme.accentMint,
-                          ),
-                          minHeight: 12,
-                        ),
-                      ),
+                      Text('User ID: ${authProvider.user?.uid ?? "null"}'),
+                      const SizedBox(height: 8),
+                      Text('Email: ${authProvider.user?.email ?? "null"}'),
+                      const SizedBox(height: 8),
+                      Text('Trips count: ${tripProvider.trips.length}'),
                       const SizedBox(height: 8),
                       Text(
-                        '${percentage.toStringAsFixed(1)}% of budget used',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.background,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Total Budget:',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            Text(
-                              '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${trip.totalBudget.toStringAsFixed(2)}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
+                          'Trips: ${tripProvider.trips.map((t) => t.destination).join(", ")}'),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Category Budgets
-              if (trip.categoryBudgets.isNotEmpty) ...[
-                Text(
-                  'Category Budgets',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 12),
-                ...trip.categoryBudgets.map((categoryBudget) {
-                  final spent = categorySpent[categoryBudget.categoryName] ?? 0;
-                  final catRemaining = tripProvider.getCategoryRemaining(
-                      widget.tripId, categoryBudget);
-                  final catPercentage = tripProvider.getCategoryPercentage(
-                      widget.tripId, categoryBudget);
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                categoryBudget.categoryName,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${spent.toStringAsFixed(0)} / ${categoryBudget.limitAmount.toStringAsFixed(0)}',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: catPercentage / 100,
-                              backgroundColor:
-                                  AppTheme.textSecondary.withOpacity(0.2),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                catPercentage > 100
-                                    ? AppTheme.errorColor
-                                    : catPercentage > 80
-                                        ? AppTheme.warningColor
-                                        : AppTheme.accentMint,
-                              ),
-                              minHeight: 6,
-                            ),
-                          ),
-                        ],
-                      ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
                     ),
-                  );
-                }).toList(),
-                const SizedBox(height: 24),
-              ],
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Consumer2<TripProvider, AuthProvider>(
+        builder: (context, tripProvider, authProvider, child) {
+          print('🔍 DEBUG: Widget rebuilding...');
+          print('🔍 DEBUG: Trips count in build: ${tripProvider.trips.length}');
 
-              // Recent Expenses
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          final trips = tripProvider.trips;
+
+          if (trips.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Icon(
+                    Icons.flight_takeoff,
+                    size: 80,
+                    color: AppTheme.textSecondary,
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'Recent Expenses',
+                    'No trips yet',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                  const SizedBox(height: 8),
                   Text(
-                    '${expenses.length} total',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    'Create your first trip to get started',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Debug info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.symmetric(horizontal: 32),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '🔍 Debug Info',
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: AppTheme.accentMint,
+                                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'User: ${authProvider.user?.email ?? "null"}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'ID: ${authProvider.user?.uid ?? "null"}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Trips: ${trips.length}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              if (expenses.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 48,
-                            color: AppTheme.textSecondary,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No expenses yet',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.copyWith(color: AppTheme.textSecondary),
-                          ),
-                        ],
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: trips.length,
+            itemBuilder: (context, index) {
+              final trip = trips[index];
+              final totalSpent = tripProvider.getTotalSpent(trip.id);
+              final remaining = tripProvider.getRemainingBudget(trip.id);
+              final percentage = tripProvider.getBudgetPercentage(trip.id);
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            TripDetailsScreen(tripId: trip.id),
                       ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentMint.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.location_on,
+                                color: AppTheme.accentMint,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    trip.destination,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Spent',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${totalSpent.toStringAsFixed(2)}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        color: percentage > 80
+                                            ? AppTheme.errorColor
+                                            : AppTheme.accentMint,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Remaining',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${remaining.toStringAsFixed(2)}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: percentage / 100,
+                            backgroundColor:
+                                AppTheme.textSecondary.withOpacity(0.2),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              percentage > 100
+                                  ? AppTheme.errorColor
+                                  : percentage > 80
+                                      ? AppTheme.warningColor
+                                      : AppTheme.accentMint,
+                            ),
+                            minHeight: 8,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                )
-              else
-                ...expenses.map((expense) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentMint.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          _getCategoryIcon(expense.categoryName),
-                          color: AppTheme.accentMint,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        expense.categoryName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (expense.note.isNotEmpty) Text(expense.note),
-                          Text(
-                            DateFormat('MMM dd, yyyy')
-                                .format(expense.expenseDate),
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${AppConstants.getCurrencySymbol(expense.currency)}${expense.amount.toStringAsFixed(2)}',
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.accentMint,
-                                    ),
-                          ),
-                          Text(
-                            expense.paidBy,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => AddExpenseScreen(tripId: widget.tripId),
+                ),
               );
             },
-            child: const Icon(Icons.add),
-          ),
-        );
-      },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateTripScreen(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Create Trip'),
+      ),
     );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Food':
-        return Icons.restaurant;
-      case 'Transport':
-        return Icons.directions_car;
-      case 'Shopping':
-        return Icons.shopping_bag;
-      case 'Accommodation':
-        return Icons.hotel;
-      case 'Entertainment':
-        return Icons.movie;
-      default:
-        return Icons.attach_money;
-    }
   }
 }

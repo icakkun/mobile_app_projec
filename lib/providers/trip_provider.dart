@@ -1,44 +1,54 @@
-// trip_provider.dart
+// trip_provider.dart - FIRESTORE VERSION
 
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 import '../models/trip.dart';
 import '../models/expense.dart';
 import '../services/firestore_service.dart';
+import 'dart:async';
 
 class TripProvider with ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
-
   List<Trip> _trips = [];
-  Map<String, List<Expense>> _expensesCache = {};
-  bool _isLoading = false;
+  final Map<String, List<Expense>> _expensesCache = {};
+  final Map<String, StreamSubscription> _expenseSubscriptions = {};
+  StreamSubscription? _tripsSubscription;
 
-  // Getters
   List<Trip> get trips => List.unmodifiable(_trips);
-  bool get isLoading => _isLoading;
 
-  TripProvider() {
-    _initializeTripsListener();
+  // Initialize with user ID and start listening
+  void initialize(String userId) {
+    _firestoreService.setUserId(userId);
+    _listenToTrips();
   }
 
-  // Initialize real-time listener for trips
-  void _initializeTripsListener() {
-    _firestoreService.getTripsStream().listen((trips) {
+  // Listen to trips stream
+  void _listenToTrips() {
+    _tripsSubscription?.cancel();
+    _tripsSubscription = _firestoreService.getTripsStream().listen((trips) {
       _trips = trips;
       notifyListeners();
     });
   }
 
-  // Get expenses for a trip (uses cache or fetches from Firestore)
-  List<Expense> getExpenses(String tripId) {
-    return List.unmodifiable(_expensesCache[tripId] ?? []);
-  }
-
-  // Initialize expense listener for a specific trip
+  // Listen to expenses for a specific trip
   void listenToExpenses(String tripId) {
-    _firestoreService.getExpensesStream(tripId).listen((expenses) {
+    if (_expenseSubscriptions.containsKey(tripId)) {
+      return; // Already listening
+    }
+
+    final subscription =
+        _firestoreService.getExpensesStream(tripId).listen((expenses) {
       _expensesCache[tripId] = expenses;
       notifyListeners();
     });
+
+    _expenseSubscriptions[tripId] = subscription;
+  }
+
+  // Get expenses from cache
+  List<Expense> getExpenses(String tripId) {
+    return List.unmodifiable(_expensesCache[tripId] ?? []);
   }
 
   // Get trip by ID
@@ -50,10 +60,9 @@ class TripProvider with ChangeNotifier {
     }
   }
 
-  // ==================== TRIP OPERATIONS ====================
-
   // Add a new trip
-  Future<bool> addTrip({
+  Future<void> addTrip({
+    required String userId,
     required String title,
     required String destination,
     required DateTime startDate,
@@ -62,10 +71,8 @@ class TripProvider with ChangeNotifier {
     required double totalBudget,
     List<CategoryBudget>? categoryBudgets,
   }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    final tripId = await _firestoreService.addTrip(
+    await _firestoreService.addTrip(
+      userId: userId,
       title: title,
       destination: destination,
       startDate: startDate,
@@ -74,54 +81,11 @@ class TripProvider with ChangeNotifier {
       totalBudget: totalBudget,
       categoryBudgets: categoryBudgets,
     );
-
-    _isLoading = false;
-    notifyListeners();
-
-    return tripId != null;
+    // No need to notifyListeners() - stream will update automatically!
   }
-
-  // Update trip
-  Future<bool> updateTrip(String id, Trip updatedTrip) async {
-    final updates = {
-      'title': updatedTrip.title,
-      'destination': updatedTrip.destination,
-      'startDate': updatedTrip.startDate,
-      'endDate': updatedTrip.endDate,
-      'homeCurrency': updatedTrip.homeCurrency,
-      'totalBudget': updatedTrip.totalBudget,
-      'categoryBudgets': updatedTrip.categoryBudgets
-          .map((cb) => {
-                'id': cb.id,
-                'categoryName': cb.categoryName,
-                'limitAmount': cb.limitAmount,
-              })
-          .toList(),
-    };
-
-    return await _firestoreService.updateTrip(id, updates);
-  }
-
-  // Delete trip
-  Future<bool> deleteTrip(String id) async {
-    _isLoading = true;
-    notifyListeners();
-
-    final success = await _firestoreService.deleteTrip(id);
-
-    // Remove from cache
-    _expensesCache.remove(id);
-
-    _isLoading = false;
-    notifyListeners();
-
-    return success;
-  }
-
-  // ==================== EXPENSE OPERATIONS ====================
 
   // Add expense
-  Future<bool> addExpense({
+  Future<void> addExpense({
     required String tripId,
     required double amount,
     required String currency,
@@ -130,7 +94,7 @@ class TripProvider with ChangeNotifier {
     required DateTime expenseDate,
     String note = '',
   }) async {
-    final expenseId = await _firestoreService.addExpense(
+    await _firestoreService.addExpense(
       tripId: tripId,
       amount: amount,
       currency: currency,
@@ -139,12 +103,33 @@ class TripProvider with ChangeNotifier {
       expenseDate: expenseDate,
       note: note,
     );
+    // Stream will update automatically!
+  }
 
-    return expenseId != null;
+  // Update trip
+  Future<void> updateTrip(String id, Trip updatedTrip) async {
+    // Convert to map for Firestore
+    final updates = {
+      'title': updatedTrip.title,
+      'destination': updatedTrip.destination,
+      'startDate': updatedTrip.startDate,
+      'endDate': updatedTrip.endDate,
+      'homeCurrency': updatedTrip.homeCurrency,
+      'totalBudget': updatedTrip.totalBudget,
+    };
+    await _firestoreService.updateTrip(id, updates);
+  }
+
+  // Delete trip
+  Future<void> deleteTrip(String id) async {
+    await _firestoreService.deleteTrip(id);
+    _expenseSubscriptions[id]?.cancel();
+    _expenseSubscriptions.remove(id);
+    _expensesCache.remove(id);
   }
 
   // Update expense
-  Future<bool> updateExpense(
+  Future<void> updateExpense(
       String tripId, String expenseId, Expense updatedExpense) async {
     final updates = {
       'amount': updatedExpense.amount,
@@ -154,16 +139,13 @@ class TripProvider with ChangeNotifier {
       'expenseDate': updatedExpense.expenseDate,
       'note': updatedExpense.note,
     };
-
-    return await _firestoreService.updateExpense(tripId, expenseId, updates);
+    await _firestoreService.updateExpense(tripId, expenseId, updates);
   }
 
   // Delete expense
-  Future<bool> deleteExpense(String tripId, String expenseId) async {
-    return await _firestoreService.deleteExpense(tripId, expenseId);
+  Future<void> deleteExpense(String tripId, String expenseId) async {
+    await _firestoreService.deleteExpense(tripId, expenseId);
   }
-
-  // ==================== CALCULATIONS ====================
 
   // Calculate total spent for a trip
   double getTotalSpent(String tripId) {
@@ -181,10 +163,9 @@ class TripProvider with ChangeNotifier {
           (categorySpent[expense.categoryName] ?? 0) + expense.amount;
     }
 
-    // Sort by value (descending)
+    // Sort by amount descending
     final sortedEntries = categorySpent.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-
     return Map.fromEntries(sortedEntries);
   }
 
@@ -199,8 +180,7 @@ class TripProvider with ChangeNotifier {
   double getBudgetPercentage(String tripId) {
     final trip = getTripById(tripId);
     if (trip == null || trip.totalBudget == 0) return 0;
-    final percentage = (getTotalSpent(tripId) / trip.totalBudget * 100);
-    return percentage.clamp(0, 999); // Cap at 999% for display
+    return (getTotalSpent(tripId) / trip.totalBudget * 100);
   }
 
   // Get remaining for category budget
@@ -213,14 +193,15 @@ class TripProvider with ChangeNotifier {
   double getCategoryPercentage(String tripId, CategoryBudget categoryBudget) {
     if (categoryBudget.limitAmount == 0) return 0;
     final spent = getSpentByCategory(tripId)[categoryBudget.categoryName] ?? 0;
-    final percentage = (spent / categoryBudget.limitAmount * 100);
-    return percentage.clamp(0, 999); // Cap at 999% for display
+    return (spent / categoryBudget.limitAmount * 100);
   }
 
-  // Clean up
   @override
   void dispose() {
-    _expensesCache.clear();
+    _tripsSubscription?.cancel();
+    for (var subscription in _expenseSubscriptions.values) {
+      subscription.cancel();
+    }
     super.dispose();
   }
 }

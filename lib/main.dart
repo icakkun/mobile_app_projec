@@ -1,21 +1,20 @@
+// main.dart - FIRESTORE VERSION
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'providers/auth_provider.dart';
 import 'providers/trip_provider.dart';
-import 'widgets/auth_gate.dart';
+import 'providers/auth_provider.dart';
+import 'screens/login_screen.dart';
+import 'widgets/app_shell.dart';
 import 'utils/app_theme.dart';
 
 void main() async {
-  // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase with platform-specific options
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   runApp(const TripMintApp());
 }
 
@@ -33,7 +32,30 @@ class TripMintApp extends StatelessWidget {
         title: 'Trip Mint',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
-        home: const AuthGate(),
+        home: Consumer2<AuthProvider, TripProvider>(
+          builder: (context, authProvider, tripProvider, _) {
+            // Show loading
+            if (authProvider.isLoading) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            // Show login if not authenticated
+            if (authProvider.user == null) {
+              return const LoginScreen();
+            }
+
+            // Initialize TripProvider with user ID
+            final userId = authProvider.user!.uid;
+            tripProvider.initialize(userId);
+
+            // Show app shell with bottom nav
+            return const AppShell();
+          },
+        ),
       ),
     );
   }

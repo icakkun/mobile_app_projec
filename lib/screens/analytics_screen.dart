@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../providers/trip_provider.dart';
-import '../../utils/app_theme.dart';
-import '../../utils/constants.dart';
+import '../providers/trip_provider.dart';
+import '../utils/app_theme.dart';
+import '../utils/constants.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   final String tripId;
@@ -116,7 +116,8 @@ class AnalyticsScreen extends StatelessWidget {
                             ? const Center(child: Text('No data'))
                             : PieChart(
                                 PieChartData(
-                                  sections: _buildPieChartSections(categorySpent, totalSpent),
+                                  sections: _buildPieChartSections(
+                                      categorySpent, totalSpent),
                                   sectionsSpace: 2,
                                   centerSpaceRadius: 60,
                                   borderData: FlBorderData(show: false),
@@ -176,22 +177,25 @@ class AnalyticsScreen extends StatelessWidget {
                         final index = mapEntry.key;
                         final entry = mapEntry.value;
                         final percentage = (entry.value / totalSpent * 100);
-                        
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: _getCategoryColor(entry.key).withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: _getCategoryColor(entry.key)
+                                              .withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                         child: Icon(
                                           _getCategoryIcon(entry.key),
@@ -202,7 +206,10 @@ class AnalyticsScreen extends StatelessWidget {
                                       const SizedBox(width: 12),
                                       Text(
                                         entry.key,
-                                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
                                               fontWeight: FontWeight.bold,
                                             ),
                                       ),
@@ -210,7 +217,10 @@ class AnalyticsScreen extends StatelessWidget {
                                   ),
                                   Text(
                                     '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${entry.value.toStringAsFixed(2)}',
-                                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
                                           color: AppTheme.accentMint,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -225,8 +235,10 @@ class AnalyticsScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(4),
                                       child: LinearProgressIndicator(
                                         value: percentage / 100,
-                                        backgroundColor: AppTheme.textSecondary.withOpacity(0.2),
-                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                        backgroundColor: AppTheme.textSecondary
+                                            .withOpacity(0.2),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
                                           _getCategoryColor(entry.key),
                                         ),
                                         minHeight: 8,
@@ -238,7 +250,8 @@ class AnalyticsScreen extends StatelessWidget {
                                     width: 50,
                                     child: Text(
                                       '${percentage.toStringAsFixed(1)}%',
-                                      style: Theme.of(context).textTheme.bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                       textAlign: TextAlign.right,
                                     ),
                                   ),
@@ -259,7 +272,8 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String label, String value, Color color) {
+  Widget _buildStatItem(
+      BuildContext context, String label, String value, Color color) {
     return Column(
       children: [
         Text(
@@ -278,7 +292,8 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  String _calculateDailyAverage(DateTime startDate, List expenses, double totalSpent) {
+  String _calculateDailyAverage(
+      DateTime startDate, List expenses, double totalSpent) {
     final daysPassed = DateTime.now().difference(startDate).inDays + 1;
     final average = totalSpent / daysPassed;
     return average.toStringAsFixed(2);

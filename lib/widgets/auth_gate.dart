@@ -1,25 +1,31 @@
+// auth_gate.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:trip_mint/screens/dashboard_screen.dart';
 import '../providers/auth_provider.dart';
-import '../screens/Auth/login_screen.dart';
+import '../screens/login_screen.dart';
 
-/// AuthGate decides whether to show LoginScreen or TripsScreen
-/// based on authentication state
 class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+  final Widget child;
+
+  const AuthGate({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        // Show login screen if user is not authenticated
-        if (!authProvider.isAuthenticated) {
+      builder: (context, authProvider, _) {
+        if (authProvider.isLoading) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (authProvider.user == null) {
           return const LoginScreen();
         }
 
-        // Show main app if user is authenticated
-        return const DashboardScreen();
+        return child;
       },
     );
   }

@@ -162,11 +162,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         decoration: InputDecoration(
                           labelText: 'Amount',
                           hintText: '0.00',
-                          prefixIcon: const Icon(Icons.attach_money, color: AppTheme.accentMint),
+                          prefixIcon: const Icon(Icons.attach_money,
+                              color: AppTheme.accentMint),
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
                         ],
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -192,7 +195,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         items: AppConstants.currencies.map((currency) {
                           return DropdownMenuItem(
                             value: currency,
-                            child: Text(AppConstants.getCurrencySymbol(currency)),
+                            child:
+                                Text(AppConstants.getCurrencySymbol(currency)),
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -209,7 +213,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   value: _selectedCategory,
                   decoration: const InputDecoration(
                     labelText: 'Category',
-                    prefixIcon: Icon(Icons.category, color: AppTheme.accentMint),
+                    prefixIcon:
+                        Icon(Icons.category, color: AppTheme.accentMint),
                   ),
                   dropdownColor: AppTheme.cardBackground,
                   items: AppConstants.categories.map((category) {
@@ -255,7 +260,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   child: InputDecorator(
                     decoration: const InputDecoration(
                       labelText: 'Date',
-                      prefixIcon: Icon(Icons.calendar_today, color: AppTheme.accentMint),
+                      prefixIcon: Icon(Icons.calendar_today,
+                          color: AppTheme.accentMint),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -264,7 +270,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           DateFormat('MMM dd, yyyy').format(_selectedDate),
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
+                        const Icon(Icons.arrow_drop_down,
+                            color: AppTheme.textSecondary),
                       ],
                     ),
                   ),

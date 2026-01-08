@@ -1,9 +1,12 @@
+// create_trip_screen.dart - FIRESTORE VERSION
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/trip_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/trip.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/constants.dart';
@@ -73,7 +76,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     }
   }
 
-  void _createTrip() {
+  void _createTrip() async {
     if (_formKey.currentState!.validate()) {
       List<CategoryBudget>? categoryBudgets;
 
@@ -94,8 +97,23 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         }
       }
 
+      // Get user ID from auth provider
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.user!.uid;
+
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // Add trip to Firestore
       final tripProvider = Provider.of<TripProvider>(context, listen: false);
-      tripProvider.addTrip(
+      await tripProvider.addTrip(
+        userId: userId,
         title: _titleController.text,
         destination: _destinationController.text,
         startDate: _startDate,
@@ -105,14 +123,22 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         categoryBudgets: categoryBudgets,
       );
 
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Trip created successfully!'),
-          backgroundColor: AppTheme.accentMint,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+
+        // Go back to trips screen
+        Navigator.pop(context);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Trip created successfully!'),
+            backgroundColor: AppTheme.accentMint,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
