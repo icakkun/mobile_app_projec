@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "754069301016",
+    "project_id": "trip-mint",
+    "storage_bucket": "trip-mint.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:754069301016:android:71efa0af69ad7ccb66e06d",
+        "android_client_info": {
+          "package_name": "com.example.trip_mint"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "754069301016-jtvcrj5s3dn39odlfejs2qagcqf7ln5a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzPu-nqgHmurcJdS-qlfKI7O-zQcV33KI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "754069301016-jtvcrj5s3dn39odlfejs2qagcqf7ln5a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
