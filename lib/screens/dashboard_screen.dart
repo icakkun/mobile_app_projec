@@ -7,8 +7,8 @@ import '../providers/trip_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
-import 'Trips/trip_details_screen.dart';
-import 'Trips/create_trip_screen.dart';
+import 'trip_details_screen.dart';
+import 'create_trip_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});

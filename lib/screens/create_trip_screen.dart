@@ -5,11 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import '../../providers/trip_provider.dart';
-import '../../providers/auth_provider.dart';
-import '../../models/trip.dart';
-import '../../utils/app_theme.dart';
-import '../../utils/constants.dart';
+import '../providers/trip_provider.dart';
+import '../providers/auth_provider.dart';
+import '../models/trip.dart';
+import '../utils/app_theme.dart';
+import '../utils/constants.dart';
 
 class CreateTripScreen extends StatefulWidget {
   const CreateTripScreen({super.key});

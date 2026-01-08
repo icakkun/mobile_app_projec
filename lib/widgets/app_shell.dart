@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../screens/dashboard_screen.dart';
-import '../screens/Trips/trips_screen.dart';
+import '../screens/trips_screen.dart';
 import '../screens/global_analytics_screen.dart';
 import '../screens/settings_screen.dart';
 import '../utils/app_theme.dart';
