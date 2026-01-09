@@ -5,92 +5,13 @@ import '../providers/trip_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'add_expense_screen.dart';
+import 'edit_expense_screen.dart';
 import 'analytics_screen.dart';
-import 'edit_trip_screen.dart';
 
 class TripDetailsScreen extends StatelessWidget {
   final String tripId;
 
   const TripDetailsScreen({super.key, required this.tripId});
-
-  void _confirmDeleteTrip(
-      BuildContext context, String tripId, String destination) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBackground,
-        title: const Text('Delete Trip?'),
-        content: Text(
-          'Are you sure you want to delete "$destination"?\n\nThis will also delete all expenses for this trip.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context); // Close dialog
-
-              // Show loading
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(color: AppTheme.accentMint),
-                ),
-              );
-
-              try {
-                final tripProvider =
-                    Provider.of<TripProvider>(context, listen: false);
-                await tripProvider.deleteTrip(tripId);
-
-                // Close loading
-                if (context.mounted) {
-                  Navigator.pop(context);
-
-                  // Go back to trips list
-                  Navigator.pop(context);
-
-                  // Show success message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Trip deleted successfully!'),
-                      backgroundColor: AppTheme.accentMint,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                // Close loading
-                if (context.mounted) {
-                  Navigator.pop(context);
-
-                  // Show error message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting trip: $e'),
-                      backgroundColor: AppTheme.errorColor,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppTheme.errorColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,45 +45,6 @@ class TripDetailsScreen extends StatelessWidget {
                     ),
                   );
                 },
-              ),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                color: AppTheme.cardBackground,
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditTripScreen(trip: trip),
-                      ),
-                    );
-                  } else if (value == 'delete') {
-                    _confirmDeleteTrip(context, trip.id, trip.destination);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, color: AppTheme.accentMint, size: 20),
-                        SizedBox(width: 12),
-                        Text('Edit Trip'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete,
-                            color: AppTheme.errorColor, size: 20),
-                        SizedBox(width: 12),
-                        Text('Delete Trip'),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -374,51 +256,123 @@ class TripDetailsScreen extends StatelessWidget {
                 ...expenses.map((expense) {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentMint.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          _getCategoryIcon(expense.categoryName),
-                          color: AppTheme.accentMint,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        expense.categoryName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (expense.note.isNotEmpty) Text(expense.note),
-                          Text(
-                            DateFormat('MMM dd, yyyy')
-                                .format(expense.expenseDate),
-                            style: Theme.of(context).textTheme.bodySmall,
+                    child: InkWell(
+                      onTap: () {
+                        // Open edit expense sheet
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => EditExpenseScreen(
+                            tripId: tripId,
+                            expense: expense,
                           ),
-                        ],
-                      ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${AppConstants.getCurrencySymbol(expense.currency)}${expense.amount.toStringAsFixed(2)}',
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.accentMint,
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _getCategoryColor(expense.categoryName)
+                                    .withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                _getCategoryIcon(expense.categoryName),
+                                color: _getCategoryColor(expense.categoryName),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        expense.categoryName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.textSecondary
+                                              .withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          expense.paidBy,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                fontSize: 11,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (expense.note.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      expense.note,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                          ),
-                          Text(
-                            expense.paidBy,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                                  ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    DateFormat('MMM dd, yyyy')
+                                        .format(expense.expenseDate),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${AppConstants.getCurrencySymbol(expense.currency)}${expense.amount.toStringAsFixed(2)}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: _getCategoryColor(
+                                            expense.categoryName),
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -455,6 +409,23 @@ class TripDetailsScreen extends StatelessWidget {
         return Icons.movie;
       default:
         return Icons.attach_money;
+    }
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'Food':
+        return const Color(0xFFEF4444);
+      case 'Transport':
+        return const Color(0xFF3B82F6);
+      case 'Shopping':
+        return const Color(0xFFF59E0B);
+      case 'Accommodation':
+        return const Color(0xFF8B5CF6);
+      case 'Entertainment':
+        return const Color(0xFFEC4899);
+      default:
+        return AppTheme.accentMint;
     }
   }
 }

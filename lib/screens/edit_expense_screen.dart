@@ -3,42 +3,46 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/trip_provider.dart';
+import '../models/expense.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 
-class AddExpenseScreen extends StatefulWidget {
+class EditExpenseScreen extends StatefulWidget {
   final String tripId;
+  final Expense expense;
 
-  const AddExpenseScreen({super.key, required this.tripId});
+  const EditExpenseScreen({
+    super.key,
+    required this.tripId,
+    required this.expense,
+  });
 
   @override
-  State<AddExpenseScreen> createState() => _AddExpenseScreenState();
+  State<EditExpenseScreen> createState() => _EditExpenseScreenState();
 }
 
-class _AddExpenseScreenState extends State<AddExpenseScreen> {
+class _EditExpenseScreenState extends State<EditExpenseScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _amountController = TextEditingController();
-  final _noteController = TextEditingController();
-  final _paidByController = TextEditingController(text: 'Me');
+  late TextEditingController _amountController;
+  late TextEditingController _noteController;
+  late TextEditingController _paidByController;
 
-  String _selectedCategory = AppConstants.categories[0];
-  String _selectedCurrency = 'MYR';
-  DateTime _selectedDate = DateTime.now();
+  late String _selectedCategory;
+  late String _selectedCurrency;
+  late DateTime _selectedDate;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Get trip currency as default
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final trip = Provider.of<TripProvider>(context, listen: false)
-          .getTripById(widget.tripId);
-      if (trip != null) {
-        setState(() {
-          _selectedCurrency = trip.homeCurrency;
-        });
-      }
-    });
+    // Pre-fill form with existing expense data
+    _amountController =
+        TextEditingController(text: widget.expense.amount.toString());
+    _noteController = TextEditingController(text: widget.expense.note);
+    _paidByController = TextEditingController(text: widget.expense.paidBy);
+    _selectedCategory = widget.expense.categoryName;
+    _selectedCurrency = widget.expense.currency;
+    _selectedDate = widget.expense.expenseDate;
   }
 
   @override
@@ -54,8 +58,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now()
-          .add(const Duration(days: 30)), // Allow future dates for planning
+      lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -77,7 +80,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
-  void _addExpense() async {
+  void _updateExpense() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -85,14 +88,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       try {
         final tripProvider = Provider.of<TripProvider>(context, listen: false);
-        await tripProvider.addExpense(
-          tripId: widget.tripId,
+
+        // Create updated expense
+        final updatedExpense = widget.expense.copyWith(
           amount: double.parse(_amountController.text),
           currency: _selectedCurrency,
           categoryName: _selectedCategory,
           paidBy: _paidByController.text.trim(),
           expenseDate: _selectedDate,
           note: _noteController.text.trim(),
+        );
+
+        await tripProvider.updateExpense(
+          widget.tripId,
+          widget.expense.id,
+          updatedExpense,
         );
 
         if (mounted) {
@@ -104,7 +114,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   const Icon(Icons.check_circle, color: AppTheme.background),
                   const SizedBox(width: 12),
                   Text(
-                    'Expense added: ${AppConstants.getCurrencySymbol(_selectedCurrency)}${_amountController.text}',
+                    'Expense updated: ${AppConstants.getCurrencySymbol(_selectedCurrency)}${_amountController.text}',
                   ),
                 ],
               ),
@@ -121,7 +131,75 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error adding expense: ${e.toString()}'),
+              content: Text('Error updating expense: ${e.toString()}'),
+              backgroundColor: AppTheme.errorColor,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _deleteExpense() async {
+    // Show confirmation dialog
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBackground,
+        title: const Text('Delete Expense?'),
+        content: const Text(
+          'Are you sure you want to delete this expense? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete',
+                style: TextStyle(color: AppTheme.errorColor)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final tripProvider = Provider.of<TripProvider>(context, listen: false);
+        await tripProvider.deleteExpense(widget.tripId, widget.expense.id);
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.delete, color: AppTheme.background),
+                  SizedBox(width: 12),
+                  Text('Expense deleted'),
+                ],
+              ),
+              backgroundColor: AppTheme.errorColor,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting expense: ${e.toString()}'),
               backgroundColor: AppTheme.errorColor,
               behavior: SnackBarBehavior.floating,
             ),
@@ -172,21 +250,27 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.accentMint.withOpacity(0.2),
+                        color: Colors.blue.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
-                        Icons.add_circle,
-                        color: AppTheme.accentMint,
+                        Icons.edit,
+                        color: Colors.blue,
                         size: 24,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Add Expense',
+                        'Edit Expense',
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
+                    ),
+                    IconButton(
+                      onPressed: _isLoading ? null : _deleteExpense,
+                      icon:
+                          const Icon(Icons.delete, color: AppTheme.errorColor),
+                      tooltip: 'Delete',
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -232,7 +316,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           }
                           return null;
                         },
-                        autofocus: true,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -356,16 +439,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Save Button
+                // Update Button
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _addExpense,
+                    onPressed: _isLoading ? null : _updateExpense,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentMint,
-                      disabledBackgroundColor:
-                          AppTheme.accentMint.withOpacity(0.5),
+                      backgroundColor: Colors.blue,
+                      disabledBackgroundColor: Colors.blue.withOpacity(0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -385,7 +467,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               const Icon(Icons.check, size: 24),
                               const SizedBox(width: 8),
                               Text(
-                                'Add Expense',
+                                'Update Expense',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyLarge

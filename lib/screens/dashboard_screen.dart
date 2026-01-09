@@ -1,11 +1,9 @@
-// dashboard_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:trip_mint/screens/trip_details_screen.dart';
 import '../providers/trip_provider.dart';
-import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'create_trip_screen.dart';
@@ -15,8 +13,8 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.user;
+    // ✅ Use Firebase Auth directly instead of AuthProvider
+    final user = FirebaseAuth.instance.currentUser;
     final displayName = user?.displayName?.split(' ').first ?? 'Traveler';
 
     return Scaffold(
@@ -163,8 +161,6 @@ class DashboardScreen extends StatelessWidget {
                       color: Colors.blue,
                       onTap: () {
                         // Navigate to Trips tab
-                        // This will be handled by changing the bottom nav index
-                        // For now, we can show a message
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Tap "Trips" tab at the bottom'),

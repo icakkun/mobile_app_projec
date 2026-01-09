@@ -1,20 +1,30 @@
-// main.dart - FIRESTORE VERSION
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'providers/trip_provider.dart';
-import 'providers/auth_provider.dart';
-import 'screens/login_screen.dart';
-import 'widgets/app_shell.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/trips_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/currency_exchange_screen.dart';
+import 'screens/auth_screen.dart';
 import 'utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ⚠️ REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyCj29Fu3EbDXiJ9TwLmMLh8wmOgyfOPYBQ", // e.g., "AIzaSyC..."
+      authDomain: "trip-mint.firebaseapp.com", // Usually correct
+      projectId: "trip-mint", // Usually correct
+      storageBucket: "trip-mint.firebasestorage.app", // Usually correct
+      messagingSenderId: "754069301016", // e.g., "123456789"
+      appId: "1:754069301016:web:03c28b3f7ef99c7c66e06d",
+    ),
   );
+
   runApp(const TripMintApp());
 }
 
@@ -23,39 +33,124 @@ class TripMintApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => AuthProvider()),
-        ChangeNotifierProvider(create: (context) => TripProvider()),
-      ],
+    // ✅ Provider created ONCE at app level - prevents spam
+    return ChangeNotifierProvider(
+      create: (_) => TripProvider(),
+      lazy: false,
       child: MaterialApp(
         title: 'Trip Mint',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
-        home: Consumer2<AuthProvider, TripProvider>(
-          builder: (context, authProvider, tripProvider, _) {
-            // Show loading
-            if (authProvider.isLoading) {
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+        home: const AuthGate(),
+      ),
+    );
+  }
+}
 
-            // Show login if not authenticated
-            if (authProvider.user == null) {
-              return const LoginScreen();
-            }
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
 
-            // Initialize TripProvider with user ID
-            final userId = authProvider.user!.uid;
-            tripProvider.initialize(userId);
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
 
-            // Show app shell with bottom nav
-            return const AppShell();
-          },
-        ),
+class _AuthGateState extends State<AuthGate> {
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeProvider();
+  }
+
+  void _initializeProvider() {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null && !_initialized) {
+        final tripProvider = Provider.of<TripProvider>(context, listen: false);
+        tripProvider.initialize(user.uid);
+        _initialized = true;
+        print('✅ Provider initialized once for user: ${user.uid}');
+      } else if (user == null) {
+        _initialized = false;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: AppTheme.background,
+            body: Center(
+              child: CircularProgressIndicator(
+                color: AppTheme.accentMint,
+              ),
+            ),
+          );
+        }
+
+        // ✅ User logged in - go to main app shell with bottom navigation
+        if (snapshot.hasData) {
+          return const AppShell();
+        }
+
+        // Not logged in - show auth screen
+        return const AuthScreen();
+      },
+    );
+  }
+}
+
+// ✅ Main app shell with bottom navigation
+class AppShell extends StatefulWidget {
+  const AppShell({super.key});
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const DashboardScreen(),
+    const TripsScreen(),
+    const CurrencyExchangeScreen(),
+    const SettingsScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.flight_takeoff),
+            label: 'Trips',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.currency_exchange), // NEW ICON
+            label: 'Exchange', // NEW TAB
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
       ),
     );
   }
