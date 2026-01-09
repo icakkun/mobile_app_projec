@@ -148,6 +148,17 @@ class TripDetailsScreen extends StatelessWidget {
           appBar: AppBar(
             title: Text(trip.destination),
             actions: [
+              // ✅ Warning indicator if budget is over 80%
+              if (percentage >= 80)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Icon(
+                    percentage >= 100 ? Icons.error : Icons.warning_amber,
+                    color: percentage >= 100
+                        ? AppTheme.errorColor
+                        : AppTheme.warningColor,
+                  ),
+                ),
               IconButton(
                 icon: const Icon(Icons.more_vert),
                 onPressed: () => _showOptionsMenu(context, trip),
@@ -164,6 +175,74 @@ class TripDetailsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
+                      // ✅ Add warning banner if budget exceeded
+                      if (percentage >= 100) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.errorColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppTheme.errorColor.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error,
+                                color: AppTheme.errorColor,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Budget exceeded by ${AppConstants.getCurrencySymbol(trip.homeCurrency)}${(totalSpent - trip.totalBudget).toStringAsFixed(2)}!',
+                                  style: const TextStyle(
+                                    color: AppTheme.errorColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ] else if (percentage >= 80) ...[
+                        // ✅ Add warning banner if budget at 80%+
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.warningColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppTheme.warningColor.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.warning_amber,
+                                color: AppTheme.warningColor,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'You\'ve used ${percentage.toStringAsFixed(1)}% of your budget. ${AppConstants.getCurrencySymbol(trip.homeCurrency)}${remaining.toStringAsFixed(2)} remaining.',
+                                  style: const TextStyle(
+                                    color: AppTheme.warningColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -281,12 +360,32 @@ class TripDetailsScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                categoryBudget.categoryName,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              Row(
+                                children: [
+                                  Text(
+                                    categoryBudget.categoryName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  // ✅ Show warning icon if category exceeded
+                                  if (catPercentage > 100) ...[
+                                    const SizedBox(width: 8),
+                                    const Icon(
+                                      Icons.error,
+                                      color: AppTheme.errorColor,
+                                      size: 16,
+                                    ),
+                                  ] else if (catPercentage > 80) ...[
+                                    const SizedBox(width: 8),
+                                    const Icon(
+                                      Icons.warning_amber,
+                                      color: AppTheme.warningColor,
+                                      size: 16,
+                                    ),
+                                  ],
+                                ],
                               ),
                               Text(
                                 '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${spent.toStringAsFixed(0)} / ${categoryBudget.limitAmount.toStringAsFixed(0)}',

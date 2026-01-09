@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/trip_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import '../utils/budget_alerts.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   final String tripId;
@@ -97,6 +98,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
         if (mounted) {
           Navigator.pop(context);
+
+          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -113,6 +116,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               duration: const Duration(seconds: 2),
             ),
           );
+
+          // ✅ CHECK BUDGET ALERTS AFTER ADDING EXPENSE
+          await BudgetAlerts.checkBudgetStatus(context, widget.tripId);
         }
       } catch (e) {
         setState(() {

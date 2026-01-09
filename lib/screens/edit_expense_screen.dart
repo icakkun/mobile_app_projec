@@ -6,6 +6,7 @@ import '../providers/trip_provider.dart';
 import '../models/expense.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import '../utils/budget_alerts.dart';
 
 class EditExpenseScreen extends StatefulWidget {
   final String tripId;
@@ -107,6 +108,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
         if (mounted) {
           Navigator.pop(context);
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -123,6 +125,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
               duration: const Duration(seconds: 2),
             ),
           );
+
+          // ✅ CHECK BUDGET ALERTS AFTER UPDATING EXPENSE
+          await BudgetAlerts.checkBudgetStatus(context, widget.tripId);
         }
       } catch (e) {
         setState(() {
@@ -177,6 +182,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
         if (mounted) {
           Navigator.pop(context);
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Row(
@@ -191,6 +197,10 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
               duration: Duration(seconds: 2),
             ),
           );
+
+          // ✅ CHECK BUDGET ALERTS AFTER DELETING (budget might be back under threshold)
+          // This clears alerts for this trip if budget is now ok
+          BudgetAlerts.clearTripAlerts(widget.tripId);
         }
       } catch (e) {
         setState(() {
