@@ -7,6 +7,7 @@ import '../providers/trip_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'create_trip_screen.dart';
+import 'enhanced_analytics_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -155,16 +156,17 @@ class DashboardScreen extends StatelessWidget {
                   Expanded(
                     child: _buildActionCard(
                       context,
-                      icon: Icons.explore,
-                      title: 'View All',
-                      subtitle: 'See all your trips',
+                      icon: Icons.analytics,
+                      title: 'Analytics',
+                      subtitle: 'View detailed insights',
                       color: Colors.blue,
                       onTap: () {
-                        // Navigate to Trips tab
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Tap "Trips" tab at the bottom'),
-                            duration: Duration(seconds: 1),
+                        // Navigate to Enhanced Analytics
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const EnhancedAnalyticsScreen(),
                           ),
                         );
                       },

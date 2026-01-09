@@ -1,41 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../utils/app_theme.dart';
-import 'register_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/app_theme.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _signIn() async {
+  void _register() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.signInWithEmail(
+      final success = await authProvider.registerWithEmail(
         _emailController.text,
         _passwordController.text,
+        _nameController.text,
       );
 
-      if (!success && mounted) {
+      if (success && mounted) {
+        // Registration successful, pop back to login (auth gate will handle navigation)
+        Navigator.pop(context);
+      } else if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Login failed'),
+            content: Text(authProvider.errorMessage ?? 'Registration failed'),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -43,23 +51,12 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _signInWithGoogle() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.signInWithGoogle();
-
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Google sign-in failed'),
-          backgroundColor: AppTheme.errorColor,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Create Account'),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -69,30 +66,48 @@ class _LoginScreenState extends State<LoginScreen> {
                 return Form(
                   key: _formKey,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Logo/Title
+                      // Icon
                       Icon(
-                        Icons.flight_takeoff,
-                        size: 80,
+                        Icons.person_add,
+                        size: 60,
                         color: AppTheme.accentMint,
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Trip Mint',
-                        style: Theme.of(context).textTheme.headlineLarge,
+                        'Sign Up',
+                        style: Theme.of(context).textTheme.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Travel Budget Planner',
+                        'Create an account to start tracking your trips',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppTheme.textSecondary,
                             ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 32),
+
+                      // Name field
+                      TextFormField(
+                        controller: _nameController,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name',
+                          hintText: 'John Doe',
+                          prefixIcon:
+                              Icon(Icons.person, color: AppTheme.accentMint),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
 
                       // Email field
                       TextFormField(
@@ -141,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
+                            return 'Please enter a password';
                           }
                           if (value.length < 6) {
                             return 'Password must be at least 6 characters';
@@ -149,11 +164,47 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 16),
+
+                      // Confirm password field
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          hintText: '••••••••',
+                          prefixIcon: const Icon(Icons.lock_outline,
+                              color: AppTheme.accentMint),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: AppTheme.textSecondary,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please confirm your password';
+                          }
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
                       const SizedBox(height: 24),
 
-                      // Login button
+                      // Register button
                       ElevatedButton(
-                        onPressed: authProvider.isLoading ? null : _signIn,
+                        onPressed: authProvider.isLoading ? null : _register,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
@@ -167,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               )
                             : const Text(
-                                'Sign In',
+                                'Create Account',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -176,72 +227,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Divider
-                      Row(
-                        children: [
-                          const Expanded(
-                              child: Divider(color: AppTheme.textSecondary)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'OR',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                          const Expanded(
-                              child: Divider(color: AppTheme.textSecondary)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Google Sign-In button
-                      OutlinedButton.icon(
-                        onPressed:
-                            authProvider.isLoading ? null : _signInWithGoogle,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: const BorderSide(color: AppTheme.textSecondary),
-                        ),
-                        icon: Image.network(
-                          'https://www.google.com/favicon.ico',
-                          height: 20,
-                          width: 20,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.g_mobiledata, size: 24);
-                          },
-                        ),
-                        label: const Text(
-                          'Sign in with Google',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Register link
+                      // Login link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            "Don't have an account? ",
+                            'Already have an account? ',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           TextButton(
                             onPressed: authProvider.isLoading
                                 ? null
                                 : () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const RegisterScreen(),
-                                      ),
-                                    );
+                                    Navigator.pop(context);
                                   },
                             child: const Text(
-                              'Sign Up',
+                              'Sign In',
                               style: TextStyle(
                                 color: AppTheme.accentMint,
                                 fontWeight: FontWeight.bold,

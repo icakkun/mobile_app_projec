@@ -7,11 +7,124 @@ import '../utils/constants.dart';
 import 'add_expense_screen.dart';
 import 'edit_expense_screen.dart';
 import 'analytics_screen.dart';
+import 'edit_trip_screen.dart';
 
 class TripDetailsScreen extends StatelessWidget {
   final String tripId;
 
   const TripDetailsScreen({super.key, required this.tripId});
+
+  void _showDeleteConfirmation(
+      BuildContext context, TripProvider tripProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBackground,
+        title: const Text('Delete Trip?'),
+        content: const Text(
+          'This will permanently delete this trip and all its expenses. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              await tripProvider.deleteTrip(tripId);
+              if (context.mounted) {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Go back to trips list
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Trip deleted'),
+                    backgroundColor: AppTheme.errorColor,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                  color: AppTheme.errorColor, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOptionsMenu(BuildContext context, trip) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.textSecondary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.edit, color: AppTheme.accentMint),
+              title: const Text('Edit Trip'),
+              onTap: () {
+                Navigator.pop(context); // Close bottom sheet
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditTripScreen(trip: trip),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.bar_chart, color: AppTheme.accentMint),
+              title: const Text('View Analytics'),
+              onTap: () {
+                Navigator.pop(context); // Close bottom sheet
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AnalyticsScreen(tripId: tripId),
+                  ),
+                );
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.delete, color: AppTheme.errorColor),
+              title: const Text(
+                'Delete Trip',
+                style: TextStyle(color: AppTheme.errorColor),
+              ),
+              onTap: () {
+                Navigator.pop(context); // Close bottom sheet
+                final tripProvider =
+                    Provider.of<TripProvider>(context, listen: false);
+                _showDeleteConfirmation(context, tripProvider);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,15 +149,9 @@ class TripDetailsScreen extends StatelessWidget {
             title: Text(trip.destination),
             actions: [
               IconButton(
-                icon: const Icon(Icons.bar_chart),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AnalyticsScreen(tripId: tripId),
-                    ),
-                  );
-                },
+                icon: const Icon(Icons.more_vert),
+                onPressed: () => _showOptionsMenu(context, trip),
+                tooltip: 'More options',
               ),
             ],
           ),
