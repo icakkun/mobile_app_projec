@@ -13,7 +13,7 @@ class TripProvider with ChangeNotifier {
 
   StreamSubscription? _tripsSubscription;
   String? _currentUserId;
-  bool _isInitialized = false; // ✅ Track initialization state
+  bool _isInitialized = false;
 
   List<Trip> get trips => List.unmodifiable(_trips);
 
@@ -29,15 +29,12 @@ class TripProvider with ChangeNotifier {
     }
   }
 
-  // ✅ FIX: Prevent duplicate initialization
   Future<void> initialize(String userId) async {
-    // If already initialized for this user, skip
     if (_isInitialized && _currentUserId == userId) {
       print('⚠️ TripProvider: Already initialized for this user, skipping');
       return;
     }
 
-    // If initialized for different user, clean up first
     if (_isInitialized && _currentUserId != userId) {
       print('🔄 TripProvider: Switching user, cleaning up old data');
       await dispose();
@@ -46,7 +43,7 @@ class TripProvider with ChangeNotifier {
     print('🔥 TripProvider: Initializing with userId: $userId');
     _currentUserId = userId;
     _firestoreService.setUserId(userId);
-    _isInitialized = true; // ✅ Mark as initialized
+    _isInitialized = true;
 
     _startTripsListener();
   }
@@ -60,7 +57,6 @@ class TripProvider with ChangeNotifier {
         print('🔥 TripProvider: Received ${trips.length} trips from Firestore');
         _trips = trips;
 
-        // Load category budgets for each trip
         for (var trip in _trips) {
           final categoryBudgets =
               await _firestoreService.getCategoryBudgets(trip.id);
@@ -70,14 +66,12 @@ class TripProvider with ChangeNotifier {
           }
         }
 
-        // Start expense listeners for new trips
         for (var trip in trips) {
           if (!_expenseSubscriptions.containsKey(trip.id)) {
             _startExpenseListener(trip.id);
           }
         }
 
-        // Cancel expense listeners for removed trips
         final tripIds = trips.map((t) => t.id).toSet();
         final subscriptionIds = _expenseSubscriptions.keys.toList();
         for (var id in subscriptionIds) {
@@ -111,7 +105,6 @@ class TripProvider with ChangeNotifier {
     );
   }
 
-  // Add a new trip
   Future<void> addTrip({
     required String title,
     required String destination,
@@ -132,23 +125,18 @@ class TripProvider with ChangeNotifier {
     );
   }
 
-  // Update trip
   Future<void> updateTrip(String id, Trip updatedTrip) async {
     await _firestoreService.updateTrip(id, updatedTrip);
   }
 
-  // Delete trip
   Future<void> deleteTrip(String id) async {
-    // Cancel expense subscription
     _expenseSubscriptions[id]?.cancel();
     _expenseSubscriptions.remove(id);
     _expenses.remove(id);
-
-    // Delete from Firestore
     await _firestoreService.deleteTrip(id);
   }
 
-  // Add expense
+  // ✅ FIXED: Now passing receiptImageUrl to FirestoreService
   Future<void> addExpense({
     required String tripId,
     required double amount,
@@ -157,6 +145,7 @@ class TripProvider with ChangeNotifier {
     required String paidBy,
     required DateTime expenseDate,
     String note = '',
+    String? receiptImageUrl, // ← Parameter exists
   }) async {
     await _firestoreService.addExpense(
       tripId: tripId,
@@ -166,27 +155,24 @@ class TripProvider with ChangeNotifier {
       paidBy: paidBy,
       expenseDate: expenseDate,
       note: note,
+      receiptImageUrl: receiptImageUrl, // ← NOW PASSING IT!
     );
   }
 
-  // Update expense
   Future<void> updateExpense(
       String tripId, String expenseId, Expense updatedExpense) async {
     await _firestoreService.updateExpense(tripId, expenseId, updatedExpense);
   }
 
-  // Delete expense
   Future<void> deleteExpense(String tripId, String expenseId) async {
     await _firestoreService.deleteExpense(tripId, expenseId);
   }
 
-  // Calculate total spent for a trip
   double getTotalSpent(String tripId) {
     final expenses = _expenses[tripId] ?? [];
     return expenses.fold(0.0, (sum, expense) => sum + expense.amount);
   }
 
-  // Calculate spent by category
   Map<String, double> getSpentByCategory(String tripId) {
     final expenses = _expenses[tripId] ?? [];
     final Map<String, double> categorySpent = {};
@@ -196,34 +182,29 @@ class TripProvider with ChangeNotifier {
           (categorySpent[expense.categoryName] ?? 0) + expense.amount;
     }
 
-    // Sort by amount (descending)
     final sortedEntries = categorySpent.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return Map.fromEntries(sortedEntries);
   }
 
-  // Get remaining budget
   double getRemainingBudget(String tripId) {
     final trip = getTripById(tripId);
     if (trip == null) return 0;
     return trip.totalBudget - getTotalSpent(tripId);
   }
 
-  // Get budget percentage used
   double getBudgetPercentage(String tripId) {
     final trip = getTripById(tripId);
     if (trip == null || trip.totalBudget == 0) return 0;
     return (getTotalSpent(tripId) / trip.totalBudget * 100);
   }
 
-  // Get remaining for category budget
   double getCategoryRemaining(String tripId, CategoryBudget categoryBudget) {
     final spent = getSpentByCategory(tripId)[categoryBudget.categoryName] ?? 0;
     return categoryBudget.limitAmount - spent;
   }
 
-  // Get category percentage
   double getCategoryPercentage(String tripId, CategoryBudget categoryBudget) {
     if (categoryBudget.limitAmount == 0) return 0;
     final spent = getSpentByCategory(tripId)[categoryBudget.categoryName] ?? 0;
@@ -240,7 +221,7 @@ class TripProvider with ChangeNotifier {
     _expenseSubscriptions.clear();
     _expenses.clear();
     _trips.clear();
-    _isInitialized = false; // ✅ Reset initialization flag
+    _isInitialized = false;
     super.dispose();
   }
 }

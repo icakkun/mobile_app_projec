@@ -1,8 +1,12 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/trip_provider.dart';
+import '../services/cloudinary_service.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import '../utils/budget_alerts.dart';
@@ -21,16 +25,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   final _paidByController = TextEditingController(text: 'Me');
+  final ImagePicker _imagePicker = ImagePicker();
 
   String _selectedCategory = AppConstants.categories[0];
   String _selectedCurrency = 'MYR';
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
 
+  // ✅ WEB COMPATIBLE: Store XFile (works on both web and mobile)
+  XFile? _receiptImage;
+  bool _isUploadingImage = false;
+
   @override
   void initState() {
     super.initState();
-    // Get trip currency as default
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final trip = Provider.of<TripProvider>(context, listen: false)
           .getTripById(widget.tripId);
@@ -55,8 +63,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now()
-          .add(const Duration(days: 30)), // Allow future dates for planning
+      lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -78,6 +85,100 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
+  // ✅ WEB COMPATIBLE: Show only gallery option on web
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.textSecondary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Add Receipt Photo',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            // ✅ Only show camera option on mobile
+            if (!kIsWeb) ...[
+              ListTile(
+                leading:
+                    const Icon(Icons.camera_alt, color: AppTheme.accentMint),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+            ListTile(
+              leading:
+                  const Icon(Icons.photo_library, color: AppTheme.accentMint),
+              title: Text(kIsWeb ? 'Choose Photo' : 'Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ WEB COMPATIBLE: Store as XFile
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _receiptImage = pickedFile;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _receiptImage = null;
+    });
+  }
+
   void _addExpense() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -85,6 +186,26 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       });
 
       try {
+        String? receiptImageUrl;
+
+        // ✅ WEB COMPATIBLE: Upload XFile directly
+        if (_receiptImage != null) {
+          setState(() {
+            _isUploadingImage = true;
+          });
+
+          // Pass XFile directly to CloudinaryService
+          receiptImageUrl = await CloudinaryService.uploadImage(_receiptImage!);
+
+          setState(() {
+            _isUploadingImage = false;
+          });
+
+          if (receiptImageUrl == null) {
+            throw Exception('Failed to upload receipt image');
+          }
+        }
+
         final tripProvider = Provider.of<TripProvider>(context, listen: false);
         await tripProvider.addExpense(
           tripId: widget.tripId,
@@ -94,20 +215,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           paidBy: _paidByController.text.trim(),
           expenseDate: _selectedDate,
           note: _noteController.text.trim(),
+          receiptImageUrl: receiptImageUrl,
         );
 
         if (mounted) {
           Navigator.pop(context);
 
-          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
                 children: [
                   const Icon(Icons.check_circle, color: AppTheme.background),
                   const SizedBox(width: 12),
-                  Text(
-                    'Expense added: ${AppConstants.getCurrencySymbol(_selectedCurrency)}${_amountController.text}',
+                  Expanded(
+                    child: Text(
+                      'Expense added: ${AppConstants.getCurrencySymbol(_selectedCurrency)}${_amountController.text}' +
+                          (receiptImageUrl != null ? ' 📸' : ''),
+                    ),
                   ),
                 ],
               ),
@@ -117,12 +241,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
           );
 
-          // ✅ CHECK BUDGET ALERTS AFTER ADDING EXPENSE
           await BudgetAlerts.checkBudgetStatus(context, widget.tripId);
         }
       } catch (e) {
         setState(() {
           _isLoading = false;
+          _isUploadingImage = false;
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -137,8 +261,36 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
+  // ✅ WEB COMPATIBLE: Build image preview widget
+  Widget _buildImagePreview() {
+    if (_receiptImage != null) {
+      return FutureBuilder<Uint8List>(
+        future: _receiptImage!.readAsBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Image.memory(
+              snapshot.data!,
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            );
+          }
+          return const Center(
+            child: SizedBox(
+              height: 150,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        },
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasImage = _receiptImage != null;
+
     return Container(
       decoration: const BoxDecoration(
         color: AppTheme.cardBackground,
@@ -172,7 +324,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Header with icon and buttons
+                // Header
                 Row(
                   children: [
                     Container(
@@ -348,6 +500,79 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                // Receipt Photo Section
+                Card(
+                  color: AppTheme.background,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.receipt_long,
+                              color: AppTheme.accentMint,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Receipt Photo (Optional)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (!hasImage)
+                          OutlinedButton.icon(
+                            onPressed: _showImageSourceDialog,
+                            icon: const Icon(Icons.camera_alt),
+                            label: const Text('Add Photo'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.accentMint,
+                              side:
+                                  const BorderSide(color: AppTheme.accentMint),
+                            ),
+                          )
+                        else
+                          Column(
+                            children: [
+                              Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: _buildImagePreview(),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: IconButton(
+                                      onPressed: _removeImage,
+                                      icon: const Icon(Icons.close),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.black54,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton.icon(
+                                onPressed: _showImageSourceDialog,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Change Photo'),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
                 // Notes Field
                 TextFormField(
                   controller: _noteController,
@@ -367,7 +592,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _addExpense,
+                    onPressed:
+                        (_isLoading || _isUploadingImage) ? null : _addExpense,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.accentMint,
                       disabledBackgroundColor:
@@ -377,13 +603,27 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: AppTheme.background,
-                              strokeWidth: 2,
-                            ),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: AppTheme.background,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _isUploadingImage
+                                    ? 'Uploading receipt...'
+                                    : 'Saving...',
+                                style: const TextStyle(
+                                  color: AppTheme.background,
+                                ),
+                              ),
+                            ],
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,

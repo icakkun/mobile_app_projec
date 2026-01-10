@@ -85,7 +85,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           if (amount != null && amount > 0) {
             categoryBudgets.add(
               CategoryBudget(
-                id: uuid.v4(),
                 categoryName: entry.key,
                 limitAmount: amount,
               ),

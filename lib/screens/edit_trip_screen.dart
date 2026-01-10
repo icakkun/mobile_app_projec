@@ -123,7 +123,6 @@ class _EditTripScreenState extends State<EditTripScreen> {
 
             categoryBudgets.add(
               CategoryBudget(
-                id: existingBudget?.id ?? uuid.v4(),
                 categoryName: entry.key,
                 limitAmount: amount,
               ),
