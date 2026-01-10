@@ -10,7 +10,14 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Image Picker (for camera & gallery)
+  image_picker: ^1.0.7
   
+  # HTTP for uploading to Cloudinary
+  http: ^1.2.0
+  
+  # Path provider (for file handling)
+  path_provider: ^2.1.2
   # State Management
   provider: ^6.1.5+1
   
