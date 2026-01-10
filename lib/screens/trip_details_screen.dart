@@ -480,20 +480,69 @@ class TripDetailsScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: _getCategoryColor(expense.categoryName)
-                                    .withOpacity(0.2),
+                            // ✅ NEW: Show receipt thumbnail or category icon
+                            if (expense.receiptImageUrl != null) ...[
+                              ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  expense.receiptImageUrl!,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: AppTheme.background,
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.background,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        size: 24,
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                              child: Icon(
-                                _getCategoryIcon(expense.categoryName),
-                                color: _getCategoryColor(expense.categoryName),
-                                size: 20,
+                              const SizedBox(width: 12),
+                            ] else ...[
+                              // Original category icon (if no receipt)
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: _getCategoryColor(expense.categoryName)
+                                      .withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  _getCategoryIcon(expense.categoryName),
+                                  color:
+                                      _getCategoryColor(expense.categoryName),
+                                  size: 20,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
+                              const SizedBox(width: 16),
+                            ],
+
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,6 +578,15 @@ class TripDetailsScreen extends StatelessWidget {
                                               ),
                                         ),
                                       ),
+                                      // ✅ NEW: Receipt indicator icon
+                                      if (expense.receiptImageUrl != null) ...[
+                                        const SizedBox(width: 4),
+                                        const Icon(
+                                          Icons.receipt,
+                                          size: 14,
+                                          color: AppTheme.accentMint,
+                                        ),
+                                      ],
                                     ],
                                   ),
                                   if (expense.note.isNotEmpty) ...[

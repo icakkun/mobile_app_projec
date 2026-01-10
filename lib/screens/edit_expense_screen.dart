@@ -1,9 +1,13 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/trip_provider.dart';
 import '../models/expense.dart';
+import '../services/cloudinary_service.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import '../utils/budget_alerts.dart';
@@ -27,11 +31,18 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
   late TextEditingController _amountController;
   late TextEditingController _noteController;
   late TextEditingController _paidByController;
+  final ImagePicker _imagePicker = ImagePicker();
 
   late String _selectedCategory;
   late String _selectedCurrency;
   late DateTime _selectedDate;
   bool _isLoading = false;
+
+  // ✅ Receipt photo state
+  XFile? _newReceiptImage; // New photo selected
+  String? _existingReceiptUrl; // Existing photo URL
+  bool _removeExistingPhoto = false; // Flag to remove existing photo
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -44,6 +55,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     _selectedCategory = widget.expense.categoryName;
     _selectedCurrency = widget.expense.currency;
     _selectedDate = widget.expense.expenseDate;
+    _existingReceiptUrl = widget.expense.receiptImageUrl;
   }
 
   @override
@@ -81,6 +93,158 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     }
   }
 
+  // Show image source selection (Camera or Gallery)
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.textSecondary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Change Receipt Photo',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            if (!kIsWeb) ...[
+              ListTile(
+                leading:
+                    const Icon(Icons.camera_alt, color: AppTheme.accentMint),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+            ListTile(
+              leading:
+                  const Icon(Icons.photo_library, color: AppTheme.accentMint),
+              title: Text(kIsWeb ? 'Choose Photo' : 'Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _newReceiptImage = pickedFile;
+          _removeExistingPhoto = false; // Cancel remove if picking new
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _newReceiptImage = null;
+      if (_existingReceiptUrl != null) {
+        _removeExistingPhoto = true;
+      }
+    });
+  }
+
+  Widget _buildImagePreview() {
+    // Show new image if selected
+    if (_newReceiptImage != null) {
+      return FutureBuilder<Uint8List>(
+        future: _newReceiptImage!.readAsBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Image.memory(
+              snapshot.data!,
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            );
+          }
+          return const Center(
+            child: SizedBox(
+              height: 150,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        },
+      );
+    }
+
+    // Show existing image if available and not marked for removal
+    if (_existingReceiptUrl != null && !_removeExistingPhoto) {
+      return Image.network(
+        _existingReceiptUrl!,
+        height: 150,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(
+            child: SizedBox(
+              height: 150,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 150,
+            color: AppTheme.background,
+            child: const Center(
+              child: Icon(Icons.broken_image,
+                  size: 48, color: AppTheme.textSecondary),
+            ),
+          );
+        },
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
   void _updateExpense() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -88,6 +252,29 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
       });
 
       try {
+        String? receiptImageUrl = _existingReceiptUrl;
+
+        // Upload new image if selected
+        if (_newReceiptImage != null) {
+          setState(() {
+            _isUploadingImage = true;
+          });
+
+          receiptImageUrl =
+              await CloudinaryService.uploadImage(_newReceiptImage!);
+
+          setState(() {
+            _isUploadingImage = false;
+          });
+
+          if (receiptImageUrl == null) {
+            throw Exception('Failed to upload receipt image');
+          }
+        } else if (_removeExistingPhoto) {
+          // Remove photo if marked for removal
+          receiptImageUrl = null;
+        }
+
         final tripProvider = Provider.of<TripProvider>(context, listen: false);
 
         // Create updated expense
@@ -98,6 +285,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
           paidBy: _paidByController.text.trim(),
           expenseDate: _selectedDate,
           note: _noteController.text.trim(),
+          receiptImageUrl: receiptImageUrl,
         );
 
         await tripProvider.updateExpense(
@@ -115,8 +303,11 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                 children: [
                   const Icon(Icons.check_circle, color: AppTheme.background),
                   const SizedBox(width: 12),
-                  Text(
-                    'Expense updated: ${AppConstants.getCurrencySymbol(_selectedCurrency)}${_amountController.text}',
+                  Expanded(
+                    child: Text(
+                      'Expense updated: ${AppConstants.getCurrencySymbol(_selectedCurrency)}${_amountController.text}' +
+                          (receiptImageUrl != null ? ' 📸' : ''),
+                    ),
                   ),
                 ],
               ),
@@ -126,12 +317,12 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
             ),
           );
 
-          // ✅ CHECK BUDGET ALERTS AFTER UPDATING EXPENSE
           await BudgetAlerts.checkBudgetStatus(context, widget.tripId);
         }
       } catch (e) {
         setState(() {
           _isLoading = false;
+          _isUploadingImage = false;
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -147,7 +338,6 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
   }
 
   void _deleteExpense() async {
-    // Show confirmation dialog
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -198,8 +388,6 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
             ),
           );
 
-          // ✅ CHECK BUDGET ALERTS AFTER DELETING (budget might be back under threshold)
-          // This clears alerts for this trip if budget is now ok
           BudgetAlerts.clearTripAlerts(widget.tripId);
         }
       } catch (e) {
@@ -221,6 +409,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = _newReceiptImage != null ||
+        (_existingReceiptUrl != null && !_removeExistingPhoto);
+
     return Container(
       decoration: const BoxDecoration(
         color: AppTheme.cardBackground,
@@ -254,7 +445,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Header with icon and buttons
+                // Header
                 Row(
                   children: [
                     Container(
@@ -435,6 +626,79 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                // Receipt Photo Section
+                Card(
+                  color: AppTheme.background,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.receipt_long,
+                              color: AppTheme.accentMint,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Receipt Photo (Optional)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (!hasPhoto)
+                          OutlinedButton.icon(
+                            onPressed: _showImageSourceDialog,
+                            icon: const Icon(Icons.camera_alt),
+                            label: const Text('Add Photo'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.accentMint,
+                              side:
+                                  const BorderSide(color: AppTheme.accentMint),
+                            ),
+                          )
+                        else
+                          Column(
+                            children: [
+                              Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: _buildImagePreview(),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: IconButton(
+                                      onPressed: _removePhoto,
+                                      icon: const Icon(Icons.close),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.black54,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton.icon(
+                                onPressed: _showImageSourceDialog,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Change Photo'),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
                 // Notes Field
                 TextFormField(
                   controller: _noteController,
@@ -454,7 +718,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _updateExpense,
+                    onPressed: (_isLoading || _isUploadingImage)
+                        ? null
+                        : _updateExpense,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       disabledBackgroundColor: Colors.blue.withOpacity(0.5),
@@ -463,13 +729,26 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: AppTheme.background,
-                              strokeWidth: 2,
-                            ),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: AppTheme.background,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _isUploadingImage
+                                    ? 'Uploading receipt...'
+                                    : 'Updating...',
+                                style:
+                                    const TextStyle(color: AppTheme.background),
+                              ),
+                            ],
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
