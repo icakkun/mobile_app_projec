@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,17 +14,23 @@ import 'utils/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ⚠️ REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyCj29Fu3EbDXiJ9TwLmMLh8wmOgyfOPYBQ", // e.g., "AIzaSyC..."
-      authDomain: "trip-mint.firebaseapp.com", // Usually correct
-      projectId: "trip-mint", // Usually correct
-      storageBucket: "trip-mint.firebasestorage.app", // Usually correct
-      messagingSenderId: "754069301016", // e.g., "123456789"
-      appId: "1:754069301016:web:03c28b3f7ef99c7c66e06d",
-    ),
-  );
+  // ✅ PLATFORM-SPECIFIC FIREBASE INITIALIZATION
+  if (kIsWeb) {
+    // WEB: Use explicit options
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyCj29Fu3EbDXiJ9TwLmMLh8wmOgyfOPYBQ",
+        authDomain: "trip-mint.firebaseapp.com",
+        projectId: "trip-mint",
+        storageBucket: "trip-mint.firebasestorage.app",
+        messagingSenderId: "754069301016",
+        appId: "1:754069301016:web:03c28b3f7ef99c7c66e06d",
+      ),
+    );
+  } else {
+    // ANDROID/iOS: Reads from google-services.json automatically
+    await Firebase.initializeApp();
+  }
 
   runApp(const TripMintApp());
 }
@@ -143,8 +150,8 @@ class _AppShellState extends State<AppShell> {
             label: 'Trips',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.currency_exchange), // NEW ICON
-            label: 'Exchange', // NEW TAB
+            icon: Icon(Icons.currency_exchange),
+            label: 'Exchange',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
