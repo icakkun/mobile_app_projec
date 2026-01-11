@@ -8,6 +8,7 @@ import 'add_expense_screen.dart';
 import 'edit_expense_screen.dart';
 import 'analytics_screen.dart';
 import 'edit_trip_screen.dart';
+import '../services/pdf_service.dart';
 
 class TripDetailsScreen extends StatelessWidget {
   final String tripId;
@@ -105,6 +106,15 @@ class TripDetailsScreen extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading:
+                  const Icon(Icons.picture_as_pdf, color: AppTheme.accentMint),
+              title: const Text('Export PDF Report'),
+              onTap: () {
+                Navigator.pop(context); // Close bottom sheet
+                _exportTripReport(context, tripId);
+              },
+            ),
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.delete, color: AppTheme.errorColor),
@@ -124,6 +134,80 @@ class TripDetailsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _exportTripReport(BuildContext context, String tripId) async {
+    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+    final trip = tripProvider.getTripById(tripId);
+
+    if (trip == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Trip not found'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+      return;
+    }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final expenses = tripProvider.getExpenses(tripId);
+      final totalSpent = tripProvider.getTotalSpent(tripId);
+      final remaining = tripProvider.getRemainingBudget(tripId);
+      final percentage = tripProvider.getBudgetPercentage(tripId);
+      final categorySpent = tripProvider.getSpentByCategory(tripId);
+
+      // Close loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // Generate PDF
+      await PdfService.generateTripReport(
+        trip: trip,
+        expenses: expenses,
+        totalSpent: totalSpent,
+        remaining: remaining,
+        percentage: percentage,
+        categorySpent: categorySpent,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: AppTheme.background),
+                SizedBox(width: 12),
+                Text('PDF generated successfully!'),
+              ],
+            ),
+            backgroundColor: AppTheme.accentMint,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (context.mounted) Navigator.pop(context);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating PDF: $e'),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-
+import '../services/pdf_service.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
 import '../models/expense.dart';
@@ -983,6 +983,92 @@ class _EnhancedAnalyticsScreenState extends State<EnhancedAnalyticsScreen> {
     }
   }
 
+  void _exportToPDF(BuildContext context) async {
+    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+    final trips = tripProvider.trips;
+
+    if (trips.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No data to export'),
+          backgroundColor: AppTheme.errorColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Collect data
+      Map<String, double> tripSpent = {};
+      Map<String, int> tripExpenseCount = {};
+      Map<String, double> categoryTotals = {};
+
+      for (var trip in trips) {
+        final totalSpent = tripProvider.getTotalSpent(trip.id);
+        final expenses = tripProvider.getExpenses(trip.id);
+
+        tripSpent[trip.id] = totalSpent;
+        tripExpenseCount[trip.id] = expenses.length;
+
+        // Aggregate categories
+        for (var expense in expenses) {
+          categoryTotals[expense.categoryName] =
+              (categoryTotals[expense.categoryName] ?? 0) + expense.amount;
+        }
+      }
+
+      // Close loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // Generate PDF
+      await PdfService.generateAnalyticsReport(
+        trips: trips,
+        tripSpent: tripSpent,
+        tripExpenseCount: tripExpenseCount,
+        categoryTotals: categoryTotals,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: AppTheme.background),
+                SizedBox(width: 12),
+                Text('Analytics PDF generated!'),
+              ],
+            ),
+            backgroundColor: AppTheme.accentMint,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (context.mounted) Navigator.pop(context);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating PDF: $e'),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _showExportDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -1015,6 +1101,8 @@ class _EnhancedAnalyticsScreenState extends State<EnhancedAnalyticsScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Divider(height: 18, color: _kBorder),
+
+                // ✅ PDF Export (NOW FUNCTIONAL!)
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                   leading: Container(
@@ -1027,8 +1115,40 @@ class _EnhancedAnalyticsScreenState extends State<EnhancedAnalyticsScreen> {
                         color: AppTheme.accentMint.withOpacity(0.22),
                       ),
                     ),
-                    child: const Icon(Icons.file_download,
+                    child: const Icon(Icons.picture_as_pdf,
                         color: AppTheme.accentMint),
+                  ),
+                  title: Text(
+                    'Export to PDF',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Generate professional report',
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _exportToPDF(context);
+                  },
+                ),
+
+                // CSV Export (existing)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.16),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.blue.withOpacity(0.22),
+                      ),
+                    ),
+                    child: const Icon(Icons.file_download, color: Colors.blue),
                   ),
                   title: Text(
                     'Export to CSV',
@@ -1044,36 +1164,6 @@ class _EnhancedAnalyticsScreenState extends State<EnhancedAnalyticsScreen> {
                   onTap: () {
                     Navigator.pop(context);
                     _exportToCSV(context);
-                  },
-                ),
-                ListTile(
-                  enabled: false,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 6),
-                  leading: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withOpacity(0.10)),
-                    ),
-                    child: const Icon(Icons.picture_as_pdf,
-                        color: AppTheme.textSecondary),
-                  ),
-                  title: Text(
-                    'Export to PDF',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary.withOpacity(0.9),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Coming soon',
-                    style: TextStyle(
-                        color: AppTheme.textSecondary.withOpacity(0.7)),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
                   },
                 ),
               ],
