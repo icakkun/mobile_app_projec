@@ -28,7 +28,6 @@ void main() async {
       ),
     );
   } else {
-    // ANDROID/iOS: Reads from google-services.json automatically
     await Firebase.initializeApp();
   }
 

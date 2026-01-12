@@ -23,14 +23,11 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Use Firebase Auth directly instead of AuthProvider
     final user = FirebaseAuth.instance.currentUser;
     final displayName = user?.displayName?.split(' ').first ?? 'Traveler';
 
     return Scaffold(
       backgroundColor: kBgTop,
-
-      // ✅ Bluish AppBar
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -72,9 +69,7 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-
       body: Container(
-        // ✅ Make whole page more “blue-ish”
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -86,7 +81,6 @@ class DashboardScreen extends StatelessWidget {
           builder: (context, tripProvider, child) {
             final trips = tripProvider.trips;
 
-            // Calculate stats
             final totalTrips = trips.length;
             final activeTrips = trips
                 .where((trip) => trip.endDate.isAfter(DateTime.now()))
@@ -99,13 +93,11 @@ class DashboardScreen extends StatelessWidget {
               totalBudget += trip.totalBudget;
             }
 
-            // Get recent trips (max 3)
             final recentTrips = trips.take(3).toList();
 
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // ✅ Quick Stats Cards (fixed height so they stay same size)
                 Row(
                   children: [
                     Expanded(
@@ -155,7 +147,6 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // ✅ Quick Actions
                 Text(
                   'Quick Actions',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -164,6 +155,8 @@ class DashboardScreen extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 12),
+
+                // ✅ FIXED: no overflow now
                 Row(
                   children: [
                     Expanded(
@@ -206,7 +199,6 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // ✅ Recent Trips
                 if (recentTrips.isNotEmpty) ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -237,7 +229,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   ...recentTrips.map((trip) {
-                    final totalSpent = tripProvider.getTotalSpent(trip.id);
+                    final spent = tripProvider.getTotalSpent(trip.id);
                     final percentage =
                         tripProvider.getBudgetPercentage(trip.id);
 
@@ -303,7 +295,9 @@ class DashboardScreen extends StatelessWidget {
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall
-                                          ?.copyWith(color: kMuted),
+                                          ?.copyWith(
+                                            color: kMuted,
+                                          ),
                                     ),
                                     const SizedBox(height: 10),
                                     ClipRRect(
@@ -331,7 +325,7 @@ class DashboardScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${totalSpent.toStringAsFixed(0)}',
+                                    '${AppConstants.getCurrencySymbol(trip.homeCurrency)}${spent.toStringAsFixed(0)}',
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyLarge
@@ -347,7 +341,9 @@ class DashboardScreen extends StatelessWidget {
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall
-                                        ?.copyWith(color: kMuted),
+                                        ?.copyWith(
+                                          color: kMuted,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -358,7 +354,6 @@ class DashboardScreen extends StatelessWidget {
                     );
                   }).toList(),
                 ] else ...[
-                  // Empty state
                   Card(
                     color: kCard,
                     elevation: 0,
@@ -370,11 +365,7 @@ class DashboardScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(32),
                       child: Column(
                         children: [
-                          Icon(
-                            Icons.flight_takeoff,
-                            size: 64,
-                            color: kMuted,
-                          ),
+                          Icon(Icons.flight_takeoff, size: 64, color: kMuted),
                           const SizedBox(height: 16),
                           Text(
                             'No trips yet',
@@ -403,9 +394,8 @@ class DashboardScreen extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      const CreateTripScreen(),
-                                ),
+                                    builder: (context) =>
+                                        const CreateTripScreen()),
                               );
                             },
                             icon: const Icon(Icons.add),
@@ -432,7 +422,7 @@ class DashboardScreen extends StatelessWidget {
     required Color color,
   }) {
     return SizedBox(
-      height: 124, // ✅ was 110 (this is the main cause)
+      height: 124,
       child: Card(
         color: kCard,
         elevation: 0,
@@ -456,21 +446,17 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-
               const SizedBox(height: 10),
-
               Text(
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: kMuted,
-                    ),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: kMuted),
               ),
-
               const SizedBox(height: 6),
-
-              // ✅ value will scale down instead of overflowing
               Expanded(
                 child: Align(
                   alignment: Alignment.bottomLeft,
@@ -494,6 +480,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  // ✅ FIXED action card
   Widget _buildActionCard(
     BuildContext context, {
     required IconData icon,
@@ -503,7 +490,7 @@ class DashboardScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      height: 140, // ✅ forces same size for both action cards
+      height: 150,
       child: Card(
         color: kCard2,
         elevation: 0,
@@ -517,7 +504,7 @@ class DashboardScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   width: 46,
@@ -531,21 +518,32 @@ class DashboardScreen extends StatelessWidget {
                   child: Icon(icon, color: color, size: 28),
                 ),
                 const SizedBox(height: 12),
+
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: kText,
                         fontWeight: FontWeight.w900,
                       ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: kMuted,
-                      ),
-                  textAlign: TextAlign.center,
+
+                const SizedBox(height: 6),
+
+                // ✅ this prevents overflow
+                Expanded(
+                  child: Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: kMuted,
+                          height: 1.2,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),

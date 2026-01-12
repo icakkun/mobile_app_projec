@@ -210,39 +210,34 @@ class _AuthScreenState extends State<AuthScreen> {
                       Column(
                         children: [
                           Container(
-                            width: 84,
-                            height: 84,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(22),
-                              color: Colors.white.withOpacity(0.06),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.18),
-                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.accentMint.withOpacity(0.18),
-                                  blurRadius: 18,
-                                  offset: const Offset(0, 10),
+                                  color: AppTheme.accentMint.withOpacity(0.25),
+                                  blurRadius: 30,
+                                  spreadRadius: 2,
                                 ),
                               ],
                             ),
-                            child: Icon(
-                              Icons.flight_takeoff,
-                              size: 42,
-                              color: AppTheme.accentMint,
+                            child: Image.asset(
+                              'assets/images/trip_mint_logo.png',
+                              width: 150,
+                              height: 150,
+                              fit: BoxFit.contain,
                             ),
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Trip Mint',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineLarge?.copyWith(
-                              color: AppTheme.accentMint,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
+
+                          //Text(
+                          // 'Trip Mint',
+                          // textAlign: TextAlign.center,
+                          //style: theme.textTheme.headlineLarge?.copyWith(
+                          //  color: AppTheme.accentMint,
+                          // fontWeight: FontWeight.w800,
+                          //letterSpacing: 0.3,
+                          // ),
+                          //),
+
                           Text(
                             _isLogin ? 'Welcome back' : 'Create your account',
                             textAlign: TextAlign.center,

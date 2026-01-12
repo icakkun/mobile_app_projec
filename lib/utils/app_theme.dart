@@ -4,7 +4,8 @@ class AppTheme {
   // Color palette
   static const Color background = Color(0xFF0B0F14);
   static const Color cardBackground = Color(0xFF121826);
-  static const Color accentMint = Color(0xFF34D399);
+  static const Color accentMint =
+      Color.from(alpha: 1, red: 0.204, green: 0.827, blue: 0.6);
   static const Color textPrimary = Color(0xFFE5E7EB);
   static const Color textSecondary = Color(0xFF9CA3AF);
   static const Color errorColor = Color(0xFFEF4444);

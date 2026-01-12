@@ -47,6 +47,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.2
+  flutter_launcher_icons: ^0.13.1
+  
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icons/trip_logo_app.png"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/trip_mint_logo.png
