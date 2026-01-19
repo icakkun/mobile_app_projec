@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Color palette
-  static const Color background = Color(0xFF0B0F14);
+  static const Color background = const Color.fromRGBO(10, 18, 32, 1);
   static const Color cardBackground = Color(0xFF121826);
   static const Color accentMint =
       Color.from(alpha: 1, red: 0.204, green: 0.827, blue: 0.6);

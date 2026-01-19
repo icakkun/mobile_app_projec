@@ -8,6 +8,7 @@ import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'create_trip_screen.dart';
 import 'enhanced_analytics_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -27,7 +28,7 @@ class DashboardScreen extends StatelessWidget {
     final displayName = user?.displayName?.split(' ').first ?? 'Traveler';
 
     return Scaffold(
-      backgroundColor: kBgTop,
+      backgroundColor: const Color.fromRGBO(10, 18, 32, 1),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -120,7 +121,10 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
+                )
+                    .animate()
+                    .fadeIn(delay: 300.ms)
+                    .scale(begin: const Offset(0.9, 0.9)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -144,7 +148,10 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
+                )
+                    .animate()
+                    .fadeIn(delay: 300.ms)
+                    .scale(begin: const Offset(0.9, 0.9)),
                 const SizedBox(height: 24),
 
                 Text(
@@ -196,7 +203,10 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
+                )
+                    .animate()
+                    .fadeIn(delay: 300.ms)
+                    .scale(begin: const Offset(0.9, 0.9)),
                 const SizedBox(height: 24),
 
                 if (recentTrips.isNotEmpty) ...[
@@ -351,7 +361,7 @@ class DashboardScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                    );
+                    ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1);
                   }).toList(),
                 ] else ...[
                   Card(

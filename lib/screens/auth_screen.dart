@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -226,7 +227,10 @@ class _AuthScreenState extends State<AuthScreen> {
                               height: 150,
                               fit: BoxFit.contain,
                             ),
-                          ),
+                          )
+                              .animate()
+                              .fadeIn(duration: 300.ms)
+                              .slideY(begin: -0.1),
 
                           //Text(
                           // 'Trip Mint',
@@ -244,7 +248,11 @@ class _AuthScreenState extends State<AuthScreen> {
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: AppTheme.textSecondary,
                             ),
-                          ),
+                          )
+                              .animate()
+                              .fadeIn(delay: 300.ms)
+                              .scale(begin: const Offset(0.9, 0.9)),
+                          //.animate().fadeIn(delay: 250.ms).slideX(begin: 0.1),
                         ],
                       ),
 
@@ -326,7 +334,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                             ),
                                           ],
                                         ),
-                                      ),
+                                      )
+                                          .animate()
+                                          .fadeIn(delay: 250.ms)
+                                          .slideX(begin: 0.1),
 
                                       const SizedBox(height: 18),
 
@@ -350,7 +361,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                             }
                                             return null;
                                           },
-                                        ),
+                                        )
+                                            .animate()
+                                            .fadeIn(delay: 200.ms)
+                                            .slideX(begin: 0.1),
                                         const SizedBox(height: 14),
                                       ],
 
@@ -378,7 +392,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                           }
                                           return null;
                                         },
-                                      ),
+                                      )
+                                          .animate()
+                                          .fadeIn(delay: 350.ms)
+                                          .slideX(begin: 0.1),
 
                                       const SizedBox(height: 14),
 
@@ -423,7 +440,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                           }
                                           return null;
                                         },
-                                      ),
+                                      )
+                                          .animate()
+                                          .fadeIn(delay: 400.ms)
+                                          .slideX(begin: 0.1),
 
                                       // ✅ Confirm Password ONLY for signup + eye
                                       if (!_isLogin) ...[
@@ -469,7 +489,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                             }
                                             return null;
                                           },
-                                        ),
+                                        )
+                                            .animate()
+                                            .fadeIn(delay: 450.ms)
+                                            .slideX(begin: 0.1),
                                       ],
 
                                       // Error message
@@ -507,7 +530,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                               ),
                                             ],
                                           ),
-                                        ),
+                                        )
+                                            .animate()
+                                            .fadeIn(delay: 250.ms)
+                                            .slideX(begin: 0.1),
                                       ],
 
                                       const SizedBox(height: 18),
@@ -554,7 +580,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                                   ),
                                                 ),
                                         ),
-                                      ),
+                                      )
+                                          .animate()
+                                          .fadeIn(delay: 500.ms)
+                                          .slideX(begin: 0.1),
 
                                       const SizedBox(height: 10),
 

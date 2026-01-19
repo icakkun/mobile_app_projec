@@ -1,5 +1,5 @@
 import 'dart:ui';
-
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_theme.dart';
@@ -20,7 +20,7 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
   String _toCurrency = 'USD';
   double _convertedAmount = 0.0;
 
-  // Common exchange rates (can be updated manually)
+  // Common exchange rates
   final Map<String, Map<String, double>> _commonRates = {
     'MYR': {
       'USD': 0.22,
@@ -46,12 +46,14 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
     },
   };
 
-  // Local-only UI palette (blue-ish dashboard vibe)
-  static const Color _kNavy1 = Color(0xFF0B1422);
-  static const Color _kNavy2 = Color(0xFF0F1B2E);
-  static const Color _kCard = Color(0xFF111F33);
-  static const Color _kBorder = Color(0xFF233A57);
-  static const Color _kInfoBlue = Color(0xFF4DA3FF);
+  // ✅ Matching Dashboard theme colors
+  static const Color kBgTop = Color(0xFF0A1220);
+  static const Color kBgBottom = Color(0xFF070D18);
+  static const Color kCard = Color(0xFF0E1B2E);
+  static const Color kCard2 = Color(0xFF101F36);
+  static const Color kBorder = Color(0xFF1E2C44);
+  static const Color kText = Color(0xFFEAF0F7);
+  static const Color kMuted = Color(0xFF9AA7B4);
 
   @override
   void initState() {
@@ -67,7 +69,6 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
   }
 
   void _updateRate() {
-    // Auto-fill exchange rate if available
     if (_commonRates.containsKey(_fromCurrency) &&
         _commonRates[_fromCurrency]!.containsKey(_toCurrency)) {
       _rateController.text =
@@ -106,68 +107,42 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    OutlineInputBorder outline(Color c) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: c, width: 1.1),
-        );
-
-    InputDecoration fieldDeco({
-      required String label,
-      String? hint,
-      IconData? icon,
-      String? helper,
-    }) {
-      return InputDecoration(
-        labelText: label,
-        hintText: hint,
-        helperText: helper,
-        prefixIcon: icon == null
-            ? null
-            : Icon(
-                icon,
-                color: AppTheme.accentMint,
-              ),
-        floatingLabelStyle: TextStyle(
-          color: AppTheme.accentMint.withOpacity(0.95),
-          fontWeight: FontWeight.w700,
-        ),
-        labelStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.9)),
-        hintStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.55)),
-        helperStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.75)),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
-        enabledBorder: outline(Colors.white.withOpacity(0.12)),
-        focusedBorder: outline(AppTheme.accentMint.withOpacity(0.65)),
-        errorBorder: outline(AppTheme.errorColor.withOpacity(0.70)),
-        focusedErrorBorder: outline(AppTheme.errorColor.withOpacity(0.85)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      );
-    }
-
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: kBgBottom,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: Text(
+        title: const Text(
           'Currency Exchange',
-          style: theme.textTheme.titleLarge?.copyWith(
+          style: TextStyle(
+            color: kText,
             fontWeight: FontWeight.w900,
-            color: AppTheme.textPrimary,
           ),
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _IconChipButton(
-              tooltip: 'Clear',
-              icon: Icons.clear_all,
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.12),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.clear_all,
+                  color: kText,
+                  size: 20,
+                ),
+              ),
               onPressed: _clearAll,
+              tooltip: 'Clear',
             ),
           ),
         ],
@@ -177,513 +152,454 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [_kNavy2, _kNavy1],
+            colors: [kBgTop, kBgBottom],
           ),
         ),
-        child: Stack(
-          children: [
-            // subtle glows
-            Positioned(
-              top: -120,
-              left: -120,
-              child: Container(
-                width: 260,
-                height: 260,
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              // Header Card
+              Container(
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.accentMint.withOpacity(0.08),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -160,
-              right: -120,
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _kInfoBlue.withOpacity(0.10),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
-
-            SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  // Header Card
-                  _GlassCard(
-                    padding: const EdgeInsets.all(18),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: AppTheme.accentMint.withOpacity(0.16),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppTheme.accentMint.withOpacity(0.22),
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.currency_exchange,
-                            color: AppTheme.accentMint,
-                            size: 26,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Quick Currency Converter',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Convert between currencies with ease',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  color: kCard,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: kBorder, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // From Section
-                  _GlassCard(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.06),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.12),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.south,
-                                color: AppTheme.accentMint,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'From',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: DropdownButtonFormField<String>(
-                                value: _fromCurrency,
-                                decoration: fieldDeco(
-                                  label: 'Currency',
-                                  icon: Icons.account_balance,
-                                ),
-                                dropdownColor: _kCard,
-                                iconEnabledColor: AppTheme.textSecondary,
-                                items: AppConstants.currencies.map((currency) {
-                                  return DropdownMenuItem(
-                                    value: currency,
-                                    child: Text(
-                                      '$currency (${AppConstants.getCurrencySymbol(currency)})',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        color: AppTheme.textPrimary,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _fromCurrency = value!;
-                                    _updateRate();
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _amountController,
-                                decoration: fieldDeco(
-                                  label: 'Amount',
-                                  hint: '0.00',
-                                  icon: Icons.payments_outlined,
-                                ),
-                                style: TextStyle(color: AppTheme.textPrimary),
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                      RegExp(r'^\d+\.?\d{0,2}')),
-                                ],
-                                onChanged: (_) => _calculate(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Swap
-                  Center(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: _swapCurrencies,
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppTheme.accentMint.withOpacity(0.45),
-                            width: 1.4,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.accentMint.withOpacity(0.12),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.swap_vert,
-                          color: AppTheme.accentMint,
-                          size: 28,
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentMint.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppTheme.accentMint.withOpacity(0.22),
                         ),
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // To Section
-                  _GlassCard(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.06),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.12),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.north,
-                                color: AppTheme.accentMint,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'To',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        DropdownButtonFormField<String>(
-                          value: _toCurrency,
-                          decoration: fieldDeco(
-                            label: 'Currency',
-                            icon: Icons.account_balance,
-                          ),
-                          dropdownColor: _kCard,
-                          iconEnabledColor: AppTheme.textSecondary,
-                          items: AppConstants.currencies.map((currency) {
-                            return DropdownMenuItem(
-                              value: currency,
-                              child: Text(
-                                '$currency (${AppConstants.getCurrencySymbol(currency)})',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _toCurrency = value!;
-                              _updateRate();
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Result pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accentMint.withOpacity(0.10),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppTheme.accentMint.withOpacity(0.22),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Converted Amount',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  '${AppConstants.getCurrencySymbol(_toCurrency)} ${_convertedAmount.toStringAsFixed(2)}',
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    color: AppTheme.accentMint,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Exchange Rate
-                  _GlassCard(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.06),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.12),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.percent,
-                                color: AppTheme.accentMint,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Exchange Rate',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _rateController,
-                          decoration: fieldDeco(
-                            label: 'Rate (1 $_fromCurrency = ? $_toCurrency)',
-                            hint: '0.00',
-                            icon: Icons.calculate_outlined,
-                            helper:
-                                'Adjust the exchange rate manually if needed',
-                          ),
-                          style: TextStyle(color: AppTheme.textPrimary),
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d+\.?\d{0,4}')),
-                          ],
-                          onChanged: (_) => _calculate(),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Info row (blue-ish)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: _kInfoBlue.withOpacity(0.10),
-                            borderRadius: BorderRadius.circular(14),
-                            border:
-                                Border.all(color: _kInfoBlue.withOpacity(0.22)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline,
-                                  color: _kInfoBlue, size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  '1 ${AppConstants.getCurrencySymbol(_fromCurrency)} = ${_rateController.text} ${AppConstants.getCurrencySymbol(_toCurrency)}',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: _kInfoBlue,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Quick Conversions
-                  _GlassCard(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: AppTheme.warningColor.withOpacity(0.10),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color:
-                                      AppTheme.warningColor.withOpacity(0.22),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.flash_on,
-                                color: AppTheme.warningColor,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Quick Conversions',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        _buildQuickConversion(10),
-                        const SizedBox(height: 12),
-                        Divider(
-                            height: 1, color: Colors.white.withOpacity(0.10)),
-                        const SizedBox(height: 12),
-                        _buildQuickConversion(50),
-                        const SizedBox(height: 12),
-                        Divider(
-                            height: 1, color: Colors.white.withOpacity(0.10)),
-                        const SizedBox(height: 12),
-                        _buildQuickConversion(100),
-                        const SizedBox(height: 12),
-                        Divider(
-                            height: 1, color: Colors.white.withOpacity(0.10)),
-                        const SizedBox(height: 12),
-                        _buildQuickConversion(500),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Calculate Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _calculate,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.accentMint,
-                        foregroundColor: AppTheme.background,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                      child: const Icon(
+                        Icons.currency_exchange,
+                        color: AppTheme.accentMint,
+                        size: 28,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.calculate, size: 22),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Calculate',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.background,
+                          const Text(
+                            'Quick Converter',
+                            style: TextStyle(
+                              fontSize: 18,
                               fontWeight: FontWeight.w900,
+                              color: kText,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Convert between currencies with ease',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: kMuted,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
+                ),
+              )
+                  .animate()
+                  .fadeIn(delay: 100.ms)
+                  .scale(begin: const Offset(0.95, 0.95)),
 
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ],
+              const SizedBox(height: 20),
+
+              // From Section
+              _buildSection(
+                title: 'From',
+                icon: Icons.south,
+                child: Column(
+                  children: [
+                    _buildCurrencyDropdown(
+                      value: _fromCurrency,
+                      onChanged: (value) {
+                        setState(() {
+                          _fromCurrency = value!;
+                          _updateRate();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(
+                      controller: _amountController,
+                      label: 'Amount',
+                      hint: '0.00',
+                      icon: Icons.payments_outlined,
+                      onChanged: (_) => _calculate(),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: 150.ms).slideX(begin: -0.1),
+
+              const SizedBox(height: 16),
+
+              // Swap Button
+              Center(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: _swapCurrencies,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: kCard,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppTheme.accentMint.withOpacity(0.5),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.accentMint.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.swap_vert,
+                      color: AppTheme.accentMint,
+                      size: 30,
+                    ),
+                  ),
+                ),
+              )
+                  .animate()
+                  .fadeIn(delay: 200.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
+
+              const SizedBox(height: 16),
+
+              // To Section
+              _buildSection(
+                title: 'To',
+                icon: Icons.north,
+                child: Column(
+                  children: [
+                    _buildCurrencyDropdown(
+                      value: _toCurrency,
+                      onChanged: (value) {
+                        setState(() {
+                          _toCurrency = value!;
+                          _updateRate();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Result
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentMint.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppTheme.accentMint.withOpacity(0.25),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Converted Amount',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: kMuted,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    '${AppConstants.getCurrencySymbol(_toCurrency)} ${_convertedAmount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      color: AppTheme.accentMint,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: 250.ms).slideX(begin: -0.1),
+
+              const SizedBox(height: 20),
+
+              // Exchange Rate Section
+              _buildSection(
+                title: 'Exchange Rate',
+                icon: Icons.percent,
+                child: Column(
+                  children: [
+                    _buildTextField(
+                      controller: _rateController,
+                      label: 'Rate (1 $_fromCurrency = ? $_toCurrency)',
+                      hint: '0.00',
+                      icon: Icons.calculate_outlined,
+                      onChanged: (_) => _calculate(),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4DA3FF).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF4DA3FF).withOpacity(0.25),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Color(0xFF4DA3FF),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '1 ${AppConstants.getCurrencySymbol(_fromCurrency)} = ${_rateController.text} ${AppConstants.getCurrencySymbol(_toCurrency)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF4DA3FF),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.1),
+
+              const SizedBox(height: 20),
+
+              // Quick Conversions
+              _buildSection(
+                title: 'Quick Conversions',
+                icon: Icons.flash_on,
+                iconColor: AppTheme.warningColor,
+                child: Column(
+                  children: [
+                    _buildQuickConversion(10),
+                    _buildDivider(),
+                    _buildQuickConversion(50),
+                    _buildDivider(),
+                    _buildQuickConversion(100),
+                    _buildDivider(),
+                    _buildQuickConversion(500),
+                  ],
+                ),
+              ).animate().fadeIn(delay: 350.ms).slideX(begin: -0.1),
+
+              const SizedBox(height: 24),
+
+              // Calculate Button
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _calculate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accentMint,
+                    foregroundColor: kBgBottom,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.calculate, size: 22),
+                      SizedBox(width: 12),
+                      Text(
+                        'Calculate',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+                  .animate()
+                  .fadeIn(delay: 400.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
+
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Color? iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: kCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: kBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: (iconColor ?? AppTheme.accentMint).withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: (iconColor ?? AppTheme.accentMint).withOpacity(0.22),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor ?? AppTheme.accentMint,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: kText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrencyDropdown({
+    required String value,
+    required void Function(String?) onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: 'Currency',
+        labelStyle: TextStyle(color: kMuted),
+        prefixIcon: const Icon(
+          Icons.account_balance,
+          color: AppTheme.accentMint,
+        ),
+        filled: true,
+        fillColor: kBgBottom.withOpacity(0.6),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: kBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.accentMint),
+        ),
+      ),
+      dropdownColor: kCard2,
+      style: const TextStyle(
+        color: kText,
+        fontWeight: FontWeight.w800,
+      ),
+      items: AppConstants.currencies.map((currency) {
+        return DropdownMenuItem(
+          value: currency,
+          child: Text(
+            '$currency (${AppConstants.getCurrencySymbol(currency)})',
+          ),
+        );
+      }).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    required void Function(String) onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      style: const TextStyle(color: kText),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: kMuted),
+        hintText: hint,
+        hintStyle: TextStyle(color: kMuted.withOpacity(0.6)),
+        prefixIcon: Icon(icon, color: AppTheme.accentMint),
+        filled: true,
+        fillColor: kBgBottom.withOpacity(0.6),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: kBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.accentMint),
+        ),
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}')),
+      ],
+      onChanged: onChanged,
     );
   }
 
@@ -691,111 +607,42 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
     final rate = double.tryParse(_rateController.text) ?? 1;
     final converted = amount * rate;
 
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            '${AppConstants.getCurrencySymbol(_fromCurrency)} ${amount.toStringAsFixed(0)}',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.textPrimary,
-                ),
-          ),
-        ),
-        Icon(Icons.arrow_forward, color: AppTheme.textSecondary, size: 16),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            '${AppConstants.getCurrencySymbol(_toCurrency)} ${converted.toStringAsFixed(2)}',
-            textAlign: TextAlign.end,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.accentMint,
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// --------------------------------------------
-/// UI helpers (visual only — no function changes)
-/// --------------------------------------------
-
-class _GlassCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-
-  const _GlassCard({
-    required this.child,
-    this.padding = const EdgeInsets.all(16),
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: _CurrencyExchangeScreenState._kCard.withOpacity(0.70),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: _CurrencyExchangeScreenState._kBorder.withOpacity(0.9),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 24,
-                offset: const Offset(0, 14),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${AppConstants.getCurrencySymbol(_fromCurrency)} ${amount.toStringAsFixed(0)}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: kText,
               ),
-            ],
+            ),
           ),
-          child: child,
-        ),
+          Icon(Icons.arrow_forward, color: kMuted, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '${AppConstants.getCurrencySymbol(_toCurrency)} ${converted.toStringAsFixed(2)}',
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppTheme.accentMint,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _IconChipButton extends StatelessWidget {
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _IconChipButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onPressed,
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.12),
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: AppTheme.textPrimary,
-            size: 20,
-          ),
-        ),
-      ),
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Divider(height: 1, color: kBorder),
     );
   }
 }
