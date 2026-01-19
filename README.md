@@ -69,6 +69,36 @@ The **Travel Budget Planner** app helps users set trip budgets, log expenses qui
 
 ---
 
+## 📸 Final UI Screenshots
+
+  **Login & Registration Screen** 
+  <img width="400" height="855" alt="UI 1" src="https://github.com/user-attachments/assets/08bdd01d-ac07-4bb3-b4cb-07c56ecc30c8" />
+  
+
+  **Dashboard**
+  <img width="400" height="861" alt="UI 2" src="https://github.com/user-attachments/assets/4781d5a0-e34b-4453-bc42-cd4c33e0ac6d" />
+  <img width="400" height="855" alt="UI 1 1" src="https://github.com/user-attachments/assets/3ab1f55f-d00b-4f93-be55-7337c798c2f8" />
+
+  **Trips Screen**
+  
+<img width="400" height="861" alt="UI 3" src="https://github.com/user-attachments/assets/9eef3d71-50e3-4a42-b08c-56c8aaaa9382" />
+<img width="402" height="857" alt="UI 2 2" src="https://github.com/user-attachments/assets/613d36a3-c4e3-4d8f-bca3-a02fda1713f6" />
+
+  **Currency Exchange Screen**
+  
+<img width="400" height="853" alt="UI 4" src="https://github.com/user-attachments/assets/f9adec66-f1e9-462d-a960-493c53d2408a" />
+<img width="400" height="859" alt="UI 3 3" src="https://github.com/user-attachments/assets/fcaf7248-470b-409a-8eba-07765dc2d4bf" />
+
+  **Setting Screen**
+<img width="399" height="853" alt="UI 5" src="https://github.com/user-attachments/assets/8416210b-02d2-4380-93e0-a261dff52a41" />
+
+
+
+
+
+
+
+
 ## 🖥️ Core Screens & UI Components
 
 - **Trips Screen**  
