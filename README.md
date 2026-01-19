@@ -266,34 +266,90 @@ open App -> Login/Register -> trips Screen
 
 ---
 
+## ✅ Summary of Achieved Features
+
+### Implemented Features
+- User authentication using Firebase Authentication  
+- Trip creation and trip management  
+- Expense logging with category classification  
+- Multi-currency expense support  
+- Automatic currency conversion to home currency  
+- Real-time budget calculation and updates  
+- Expense analytics and visual breakdown  
+- Export expense receipts to PDF format  
+- Cloud-based data synchronization using Firestore  
+
+---
+
+## 🧠 Technical Explanation
+
+### Application Architecture
+- Frontend developed using **Flutter**  
+- State management handled using **Riverpod**  
+- Backend services powered by **Firebase**  
+
+### State Management (Riverpod)
+Riverpod is used to:
+- Separate business logic from UI components  
+- Manage reactive state updates efficiently  
+- Improve scalability and maintainability  
+
+Key providers include:
+- `authProvider` – manages user authentication state  
+- `tripsProvider` – handles trip data  
+- `expensesProvider(tripId)` – manages expense records  
+- `analyticsProvider(tripId)` – computes expense summaries and analytics  
+
+### Backend Services (Firebase)
+- **Firebase Authentication** for secure user login  
+- **Cloud Firestore** for real-time data storage and synchronization  
+
+### Multi-Currency Support
+- Expenses can be recorded in multiple currencies  
+- Automatic conversion to the home currency  
+- Both original and converted values are stored for reference  
+
+### PDF Export
+- Expense data is formatted into a receipt layout  
+- PDF files can be generated and shared directly from the app  
+
+---
+
 
 ## 📋 Scope & Limitations
 
 ### Scope
 - Single user and basic group expense tracking  
-- Manual currency conversion  
-- Basic analytics  
+- Multi-currency expense entry with conversion  
+- Basic expense analytics and visual summaries  
+- PDF export for expense receipts  
 - Android platform support  
 
 ### Limitations
-- No bank or payment API integration  
-- No AI-based insights  
+- Static currency exchange rates  
 - Limited offline functionality  
-- No receipt OCR in Phase 1  
+- No biometric authentication  
+- No receipt scanning (OCR) in Phase 1  
+- Basic group expense features  
 
 ---
 
-## ⚙️ Non-Functional Requirements
+## 🔮 Future Enhancements
 
-- **Performance:** Updates reflected in under 1 second  
-- **Usability:** Expense entry within 3 taps  
-- **Security:** Firebase Authentication & Firestore rules  
-- **Scalability:** Cloud-based backend  
-- **Reliability:** Real-time synchronization  
+### Planned Improvements
+- Live currency exchange rate integration  
+- Offline-first support with local caching  
+- Biometric authentication (Fingerprint / Face ID)  
+- Receipt scanning using OCR technology  
+- Advanced group expense splitting and settlements  
+- Export data to CSV and Excel formats  
+- AI-based budget recommendations and insights  
 
 ---
 
+## 🏁 Conclusion
 
+The **Travel Budget Planner** successfully meets its primary objectives by providing a simple and effective solution for managing travel expenses. With features such as real-time tracking, multi-currency support, expense analytics, and PDF export, the application delivers strong practical value. Future enhancements will further improve usability, intelligence, and scalability.
 
 ## 📚 References
 
