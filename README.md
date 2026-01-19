@@ -92,6 +92,7 @@ The **Travel Budget Planner** app helps users set trip budgets, log expenses qui
 <img width="400" height="859" alt="UI 3 3" src="https://github.com/user-attachments/assets/fcaf7248-470b-409a-8eba-07765dc2d4bf" />
 
   **Setting Screen**
+  
 <img width="399" height="853" alt="UI 5" src="https://github.com/user-attachments/assets/8416210b-02d2-4380-93e0-a261dff52a41" />
 
 
