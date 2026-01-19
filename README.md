@@ -71,13 +71,15 @@ The **Travel Budget Planner** app helps users set trip budgets, log expenses qui
 
 ## 📸 Final UI Screenshots
 
-  **Login & Registration Screen** 
-  <img width="400" height="855" alt="UI 1" src="https://github.com/user-attachments/assets/08bdd01d-ac07-4bb3-b4cb-07c56ecc30c8" />
+  **Login & Registration Screen**
+  
+<img width="400" height="855" alt="UI 1" src="https://github.com/user-attachments/assets/08bdd01d-ac07-4bb3-b4cb-07c56ecc30c8" />
   
 
   **Dashboard**
-  <img width="400" height="861" alt="UI 2" src="https://github.com/user-attachments/assets/4781d5a0-e34b-4453-bc42-cd4c33e0ac6d" />
-  <img width="400" height="855" alt="UI 1 1" src="https://github.com/user-attachments/assets/3ab1f55f-d00b-4f93-be55-7337c798c2f8" />
+  
+<img width="400" height="861" alt="UI 2" src="https://github.com/user-attachments/assets/4781d5a0-e34b-4453-bc42-cd4c33e0ac6d" />
+<img width="400" height="855" alt="UI 1 1" src="https://github.com/user-attachments/assets/3ab1f55f-d00b-4f93-be55-7337c798c2f8" />
 
   **Trips Screen**
   
